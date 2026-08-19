@@ -1,0 +1,192 @@
+import React, { useEffect, useMemo, useState } from 'react';
+import { createRoot } from 'react-dom/client';
+import {
+  CalendarDays, Check, ChevronLeft, ChevronRight, Clock3, Gift,
+  Copy, Heart, Home, Plus, Settings2, Sparkles, Star, X
+} from 'lucide-react';
+import './styles.css';
+import QuickStart from './components/QuickStart';
+import CoupleSetup from './components/CoupleSetup';
+import CalendarPage from './components/CalendarPage';
+import WishlistPage from './components/WishlistPage';
+import OurSpacePage from './components/OurSpacePage';
+import SettingsPage from './components/SettingsPage';
+import { isSupabaseConfigured, supabase } from './lib/supabase';
+import { useDuetData } from './hooks/useDuetData';
+
+const nav = [
+  ['home', '首頁', Home], ['calendar', '行事曆', CalendarDays],
+  ['wishlist', '願望清單', Star], ['us', '我們', Heart]
+];
+
+function App({ user = null, duet = null }) {
+  const [theme, setTheme] = useState(duet?.profile?.theme || 'blush');
+  const [active, setActive] = useState('home');
+  const [modal, setModal] = useState(false);
+  const [toast, setToast] = useState('');
+  const today = useMemo(() => new Intl.DateTimeFormat('zh-TW', { weekday: 'long', month: 'long', day: 'numeric' }).format(new Date()), []);
+  const displayName = duet?.profile?.display_name || '你';
+  const firstName = displayName.split(' ')[0];
+  const liveSchedule = (duet?.events || []).filter(event => new Date(event.starts_at) >= new Date()).slice(0, 3).map(event => {
+    const date = new Date(event.starts_at);
+    return { id:event.id, day: String(date.getDate()).padStart(2, '0'), month: date.toLocaleString('zh-TW', {month:'short'}), title:event.title, time:date.toLocaleTimeString('zh-TW',{hour:'numeric',minute:'2-digit'}), icon:CalendarDays };
+  });
+  const liveWishes = (duet?.wishes || []).slice(0, 3).map((wish, index) => ({ id:wish.id, title:wish.title, meta:`${wish.category} · ${wish.status}`, tone:['forest','coral','sky'][index%3], icon:Star }));
+  const coupleName = duet?.couple?.name || '我們的空間';
+  const inviteCode = duet?.couple?.invite_code;
+
+  async function changeTheme(nextTheme) {
+    setTheme(nextTheme);
+    if (user && supabase) await supabase.from('profiles').update({ theme: nextTheme }).eq('id', user.id);
+  }
+
+  const notify = (message) => {
+    setToast(message);
+    window.setTimeout(() => setToast(''), 2600);
+  };
+
+  async function copyInvite() {
+    const inviteUrl = `${window.location.origin}/?invite=${inviteCode}`;
+    await navigator.clipboard.writeText(inviteUrl);
+    notify('已複製伴侶邀請連結');
+  }
+
+  return (
+    <div className={`app theme-${theme}`}>
+      <aside className="sidebar" aria-label="Primary navigation">
+        <a className="brand" href="#home" onClick={() => setActive('home')} aria-label="Duet home">
+          <span className="brand-mark"><Heart size={18} fill="currentColor" /></span>
+          <span>duet</span>
+        </a>
+        <nav>
+          {nav.map(([id, label, Icon]) => (
+            <button key={id} className={active === id ? 'nav-item active' : 'nav-item'} onClick={() => setActive(id)}>
+              <Icon size={20} /><span>{label}</span>
+            </button>
+          ))}
+        </nav>
+        <div className="sidebar-bottom">
+          <div className="couple-mini">
+            <div className="avatar avatar-a">{firstName.slice(0,1).toUpperCase()}</div><div className="avatar avatar-b"><Heart size={11} fill="currentColor"/></div>
+            <div><strong>{coupleName}</strong><small>{inviteCode ? `邀請碼 · ${inviteCode}` : '私人共同空間'}</small></div>
+          </div>
+          {inviteCode&&<button className="copy-invite" onClick={copyInvite}><Copy size={15}/>複製伴侶邀請</button>}
+          <button className={active === 'settings' ? 'nav-item active' : 'nav-item'} onClick={()=>setActive('settings')}><Settings2 size={20} /><span>設定</span></button>
+        </div>
+      </aside>
+
+      <main>
+        {active === 'calendar' ? <CalendarPage events={duet?.events || []} couple={duet?.couple} user={user} onRefresh={duet?.refresh || (()=>{})} onNotify={notify}/>
+        : active === 'wishlist' ? <WishlistPage items={duet?.wishes || []} couple={duet?.couple} user={user} onRefresh={duet?.refresh || (()=>{})} onNotify={notify}/>
+        : active === 'us' ? <OurSpacePage memories={duet?.memories || []} tasks={duet?.tasks || []} couple={duet?.couple} user={user} onRefresh={duet?.refresh || (()=>{})} onNotify={notify}/>
+        : active === 'settings' ? <SettingsPage profile={duet?.profile} couple={duet?.couple} user={user} onRefresh={duet?.refresh || (()=>{})} onNotify={notify} onTheme={changeTheme}/>
+        : <>
+        <header className="topbar">
+          <div><p className="eyebrow">{today}</p><h1>晚安，{firstName}。</h1></div>
+          <div className="top-actions">
+            <div className="theme-switch" aria-label="Choose your theme">
+              <button aria-label="暖粉主題" className={theme === 'blush' ? 'selected' : ''} onClick={() => changeTheme('blush')}><span className="swatch blush" />暖粉</button>
+              <button aria-label="靜藍主題" className={theme === 'midnight' ? 'selected' : ''} onClick={() => changeTheme('midnight')}><span className="swatch midnight" />靜藍</button>
+            </div>
+            <button className="add-button" aria-label="新增內容" onClick={() => setModal(true)}><Plus size={19} />新增</button>
+          </div>
+        </header>
+
+        <section className="hero-card">
+          <div className="hero-copy">
+            <span className="pill"><Sparkles size={14} /> 屬於你們的小天地</span>
+            <h2>一起規劃生活，<br />每一天都更<em>輕鬆。</em></h2>
+            <p>{liveSchedule.length ? `接下來有 ${liveSchedule.length} 件事情，正等著你們一起完成。` : '目前沒有安排，新增第一個值得期待的計畫吧。'}</p>
+            <button onClick={() => setActive('calendar')}>看看這一週 <ChevronRight size={17} /></button>
+          </div>
+          <div className="hero-art" aria-hidden="true">
+            <div className="orbit orbit-one"/><div className="orbit orbit-two"/>
+            <div className="moon"><Heart fill="currentColor" /></div>
+            <span className="spark s1"/><span className="spark s2"/><span className="spark s3"/>
+            {liveSchedule[0]&&<div className="note-card"><span>下一個行程</span><strong>{liveSchedule[0].month} {liveSchedule[0].day} · {liveSchedule[0].time}</strong></div>}
+          </div>
+        </section>
+
+        <section className="content-grid">
+          <div className="panel schedule-panel">
+            <div className="panel-heading">
+              <div><p className="eyebrow">接下來</p><h3>我們的行程</h3></div>
+              <button className="text-button" onClick={() => setActive('calendar')}>完整行事曆 <ChevronRight size={16}/></button>
+            </div>
+            <div className="schedule-list">
+              {liveSchedule.map(({id,day,month,title,time,icon:Icon}) => (
+                <button className="event-row" key={id} onClick={() => setActive('calendar')}>
+                  <div className="date-tile"><strong>{day}</strong><span>{month}</span></div>
+                  <div className="event-icon both"><Icon size={18}/></div>
+                  <div className="event-copy"><strong>{title}</strong><span><Clock3 size={14}/>{time}</span></div>
+                  <div className="owner-dots" aria-label="共同活動"><i className="avatar avatar-a">{firstName.slice(0,1).toUpperCase()}</i><i className="avatar avatar-b">♥</i></div>
+                  <ChevronRight className="row-arrow" size={18}/>
+                </button>
+              ))}
+              {!liveSchedule.length&&<div className="home-empty"><CalendarDays size={22}/><span><strong>還沒有即將到來的行程</strong><small>建立你們的第一個共同計畫。</small></span></div>}
+            </div>
+            <button className="outline-button" onClick={() => setModal(true)}><Plus size={18}/> 新增行程</button>
+          </div>
+
+          <aside className="right-stack">
+            <div className="panel wish-panel">
+              <div className="panel-heading"><div><p className="eyebrow">總有一天</p><h3>我們的願望</h3></div><span className="count">{duet?.wishes?.length || 0} 個想法</span></div>
+              <div className="wish-list">
+                {liveWishes.map(({id,title,meta,tone,icon:Icon}) => (
+                  <button className="wish-row" key={id} onClick={() => setActive('wishlist')}>
+                    <span className={`wish-icon ${tone}`}><Icon size={19}/></span>
+                    <span><strong>{title}</strong><small>{meta}</small></span>
+                    <Heart className="wish-heart" size={18}/>
+                  </button>
+                ))}
+                {!liveWishes.length&&<div className="home-empty"><Gift size={22}/><span><strong>願望清單還是空的</strong><small>收藏想一起完成的小夢想。</small></span></div>}
+              </div>
+              <button className="text-button wide" onClick={() => setActive('wishlist')}>打開願望清單 <ChevronRight size={16}/></button>
+            </div>
+          </aside>
+        </section>
+        </>}
+      </main>
+
+      <nav className="mobile-nav" aria-label="Mobile navigation">
+        {nav.slice(0,4).map(([id,label,Icon]) => <button key={id} className={active === id ? 'active' : ''} onClick={() => setActive(id)}><Icon size={21}/><span>{label}</span></button>)}
+        <button className={active === 'settings' ? 'active' : ''} onClick={()=>setActive('settings')}><Settings2 size={21}/><span>設定</span></button>
+      </nav>
+
+      {modal && <div className="modal-backdrop" role="presentation" onMouseDown={(e) => e.target === e.currentTarget && setModal(false)}>
+        <section className="modal" role="dialog" aria-modal="true" aria-labelledby="add-title">
+          <button className="icon-button close" aria-label="Close" onClick={() => setModal(false)}><X size={20}/></button>
+          <p className="eyebrow">一起安排一下</p><h2 id="add-title">想新增什麼？</h2>
+          <div className="add-options">
+            {[['行事曆活動', CalendarDays, 'calendar'], ['願望清單', Star, 'wishlist'], ['共同任務', Check, 'us'], ['珍藏回憶', Heart, 'us']].map(([label,Icon,target]) => <button key={label} onClick={() => {setModal(false);setActive(target);}}><Icon size={22}/><span>{label}</span><ChevronRight size={18}/></button>)}
+          </div>
+        </section>
+      </div>}
+      {toast && <div className="toast" role="status"><Check size={17}/>{toast}</div>}
+    </div>
+  );
+}
+
+function ConnectedApp({ user }) {
+  const duet = useDuetData(user);
+  if (duet.loading) return <div className="loading-screen"><Heart fill="currentColor"/><p>Opening your duet…</p></div>;
+  if (!duet.couple) return <CoupleSetup onReady={duet.refresh}/>;
+  return <App user={user} duet={duet}/>;
+}
+
+function Root() {
+  const [session, setSession] = useState(null);
+  const [ready, setReady] = useState(!isSupabaseConfigured);
+  useEffect(() => {
+    if (!supabase) return;
+    supabase.auth.getSession().then(({ data }) => { setSession(data.session); setReady(true); });
+    const { data } = supabase.auth.onAuthStateChange((_event, nextSession) => setSession(nextSession));
+    return () => data.subscription.unsubscribe();
+  }, []);
+  if (!ready) return <div className="loading-screen"><Heart fill="currentColor"/><p>Opening your duet…</p></div>;
+  if (!isSupabaseConfigured) return <div className="loading-screen"><Heart fill="currentColor"/><p>尚未連接 Supabase，請先設定環境變數。</p></div>;
+  if (!session) return <QuickStart/>;
+  return <ConnectedApp user={session.user}/>;
+}
+
+createRoot(document.getElementById('root')).render(<Root />);
