@@ -97,15 +97,17 @@ export default function CalendarPage({ events, couple, user, onRefresh, onNotify
       <div className="calendar-card">
         <div className="calendar-toolbar">
           <div><button className="icon-button" aria-label="上個月" onClick={()=>moveMonth(-1)}><ChevronLeft size={19}/></button><button className="today-button" onClick={()=>{setCursor(new Date());setSelectedDate(new Date())}}>今天</button><button className="icon-button" aria-label="下個月" onClick={()=>moveMonth(1)}><ChevronRight size={19}/></button></div>
-          <h2>{monthLabel}</h2><span className="calendar-legend"><i/> 共同計畫</span>
+          <h2>{monthLabel}</h2><span className="calendar-legend"><span><i className="plan-dot"/>有安排</span><span><i className="holiday-dot"/>節日</span></span>
         </div>
         <div className="weekday-row">{['日','一','二','三','四','五','六'].map(day=><span key={day}>{day}</span>)}</div>
         <div className="month-grid">
           {days.map(date=>{
             const key=date.toLocaleDateString('en-CA'), dayEvents=byDate[key]||[], inMonth=date.getMonth()===cursor.getMonth(), isToday=key===new Date().toLocaleDateString('en-CA'), selected=key===selectedKey;
-            const cellItems=[...holidayForDate(date,couple),...dayEvents];
-            return <button key={key} className={`calendar-day ${!inMonth?'muted-day':''} ${isToday?'today':''} ${selected?'selected':''}`} onClick={()=>setSelectedDate(date)} onDoubleClick={()=>openNew(date)}>
+            const dayHolidays=holidayForDate(date,couple), cellItems=[...dayHolidays,...dayEvents];
+            const statusLabel=[dayEvents.length&&`${dayEvents.length} 個安排`,dayHolidays.length&&dayHolidays.map(item=>item.title).join('、')].filter(Boolean).join('，');
+            return <button key={key} aria-label={`${date.toLocaleDateString('zh-TW')}${statusLabel?`，${statusLabel}`:''}`} className={`calendar-day ${!inMonth?'muted-day':''} ${isToday?'today':''} ${selected?'selected':''} ${dayEvents.length?'has-events':''} ${dayHolidays.length?'has-holiday':''}`} onClick={()=>setSelectedDate(date)} onDoubleClick={()=>openNew(date)}>
               <span className="day-number">{date.getDate()}</span>
+              {cellItems.length>0&&<span className="day-status-icons" aria-hidden="true">{dayEvents.length>0&&<CalendarDays/>}{dayHolidays.length>0&&<Sparkles/>}</span>}
               <span className="day-events">{cellItems.slice(0,3).map(item=><i key={item.id} className={`event-chip ${item.isHoliday?'holiday':item.visibility}`}>{!item.isHoliday&&<span>{new Date(item.starts_at).toLocaleTimeString('zh-TW',{hour:'numeric'})}</span>}{item.title}</i>)}{cellItems.length>3&&<small>還有 {cellItems.length-3} 項</small>}</span>
             </button>;
           })}
