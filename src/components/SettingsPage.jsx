@@ -4,6 +4,9 @@ import { supabase } from '../lib/supabase';
 import PickerField from './PickerField';
 
 export default function SettingsPage({members,couple,user,onRefresh,onNotify,onTheme}){
+  const ownMember=(members||[]).find(member=>member.user_id===user?.id);
+  const [ownName,setOwnName]=useState(ownMember?.profile?.display_name||'');
+  const [savingName,setSavingName]=useState(false);
   const [space,setSpace]=useState(couple?.name||'');
   const [anniversary,setAnniversary]=useState(couple?.anniversary||'');
   const [saving,setSaving]=useState(false);
@@ -20,6 +23,18 @@ export default function SettingsPage({members,couple,user,onRefresh,onNotify,onT
     if(error)return onNotify(error.message);
     await onRefresh();
     onNotify('設定已儲存');
+  }
+
+  async function saveOwnName(e){
+    e.preventDefault();
+    const nextName=ownName.trim();
+    if(!nextName)return onNotify('請輸入你的名字');
+    setSavingName(true);
+    const {error}=await supabase.from('profiles').update({display_name:nextName}).eq('id',user.id);
+    setSavingName(false);
+    if(error)return onNotify(error.message);
+    await onRefresh();
+    onNotify('你的名字已更新');
   }
 
   async function copy(){
@@ -41,8 +56,8 @@ export default function SettingsPage({members,couple,user,onRefresh,onNotify,onT
     <header className="page-title-row"><div><p className="eyebrow">你們的小天地</p><h1>設定</h1><p>管理共同空間、重要日期與你的個人主題。</p></div></header>
     <div className="settings-grid">
       <div className="settings-stack">
-        <section className="settings-card members-card"><span className="settings-icon"><UsersRound/></span><h2>我們</h2><p>空間裡的名字由加入時設定，這裡只顯示、不會被更改。</p>
-          <div className="member-list">{(members||[]).map(member=>{const memberName=member.profile?.display_name||'成員';return <div className="member-row" key={member.user_id}><i>{memberName.slice(0,1).toUpperCase()}</i><span><strong>{memberName}</strong><small>{member.user_id===user?.id?'你':'另一半'}</small></span></div>})}{(members||[]).length<2&&<div className="member-row waiting"><i>＋</i><span><strong>等待另一半加入</strong><small>使用下方邀請連結</small></span></div>}</div>
+        <section className="settings-card members-card"><span className="settings-icon"><UsersRound/></span><h2>我們</h2><p>你可以修改自己的名字；另一半的名字只能查看。</p>
+          <div className="member-list">{(members||[]).map(member=>{const memberName=member.profile?.display_name||'成員';return member.user_id===user?.id?<form className="member-row member-edit-row" key={member.user_id} onSubmit={saveOwnName}><i>{(ownName||memberName).slice(0,1).toUpperCase()}</i><label><small>你的名字</small><input value={ownName} onChange={e=>setOwnName(e.target.value)} required maxLength="80" aria-label="你的名字"/></label><button type="submit" aria-label="儲存你的名字" disabled={savingName}>{savingName?<LoaderCircle className="spin" size={17}/>:<Check size={17}/>}</button></form>:<div className="member-row" key={member.user_id}><i>{memberName.slice(0,1).toUpperCase()}</i><span><strong>{memberName}</strong><small>另一半 · 僅供查看</small></span></div>})}{(members||[]).length<2&&<div className="member-row waiting"><i>＋</i><span><strong>等待另一半加入</strong><small>使用下方邀請連結</small></span></div>}</div>
         </section>
         <form className="settings-card" onSubmit={save}>
         <span className="settings-icon"><Heart/></span><h2>共同資料</h2>
