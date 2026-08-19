@@ -55,7 +55,7 @@ function App({ user = null, duet = null }) {
   }
 
   return (
-    <div className={`app theme-${theme}`}>
+    <div className={`app theme-${theme} ${active === 'settings' ? 'settings-active' : ''}`}>
       <aside className="sidebar" aria-label="Primary navigation">
         <a className="brand" href="#home" onClick={() => setActive('home')} aria-label="Duet home">
           <span className="brand-mark"><Heart size={18} fill="currentColor" /></span>

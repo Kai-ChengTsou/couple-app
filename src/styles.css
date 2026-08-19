@@ -157,4 +157,7 @@ img{-webkit-user-drag:none}
   .event-modal .event-form label{grid-template-rows:16px auto;gap:7px}
   .event-modal .event-form label>.field-label{height:16px;min-height:16px}
   .event-form select{padding:0 38px 0 14px;line-height:normal;text-align:left;text-align-last:left}
+  .app.settings-active{padding-bottom:0}
+  .settings-active main{padding-bottom:0}
+  .settings-active .settings-page{padding-bottom:calc(80px + env(safe-area-inset-bottom))}
 }
