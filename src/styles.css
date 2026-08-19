@@ -94,3 +94,5 @@ button:focus-visible,a:focus-visible{outline:3px solid color-mix(in srgb,var(--p
 .home-empty{min-height:92px;display:flex;align-items:center;justify-content:center;gap:12px;padding:18px;border:1px dashed var(--line);border-radius:14px;color:var(--primary)}
 .home-empty>span{display:grid;gap:4px}.home-empty strong{font-size:11px;color:var(--ink)}.home-empty small{font-size:9px;color:var(--muted)}
 .memory-card{position:relative}
+.mobile-copy{display:none}
+@media(max-width:760px){.quick-message .desktop-copy{display:none}.quick-message .mobile-copy{display:inline}.quick-message h1{font-size:34px;line-height:1.02;margin:14px 0 10px}}

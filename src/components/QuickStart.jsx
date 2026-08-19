@@ -28,7 +28,7 @@ export default function QuickStart() {
   return <div className="quick-shell">
     <section className="quick-visual">
       <a className="brand auth-brand" href="/"><span className="brand-mark"><Heart size={18} fill="currentColor"/></span><span>duet</span></a>
-      <div className="quick-message"><span className="pill"><Sparkles size={14}/> 只屬於兩個人的空間</span><h1>不需要密碼，<br/>這裡就是<em>你們的家。</em></h1><p>建立一個溫暖的小天地，傳送私人邀請，就能在各自的手機上一直相伴。</p></div>
+      <div className="quick-message"><span className="pill"><Sparkles size={14}/> 只屬於兩個人的空間</span><h1><span className="desktop-copy">不需要密碼，<br/>這裡就是<em>你們的家。</em></span><span className="mobile-copy">你們的<em>小天地。</em></span></h1><p>建立一個溫暖的小天地，傳送私人邀請，就能在各自的手機上一直相伴。</p></div>
       <div className="quick-hearts" aria-hidden="true"><span><Heart fill="currentColor"/></span><span><Heart fill="currentColor"/></span></div>
     </section>
     <main className="quick-main">
