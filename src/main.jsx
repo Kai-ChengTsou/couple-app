@@ -1,8 +1,8 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import {
   CalendarDays, Check, ChevronLeft, ChevronRight, Clock3, Gift,
-  Copy, Heart, Home, Plus, Settings2, Sparkles, Star
+  Copy, Heart, Home, Plus, RefreshCw, Settings2, Sparkles, Star
 } from 'lucide-react';
 import './styles.css';
 import QuickStart from './components/QuickStart';
@@ -28,6 +28,9 @@ function App({ user = null, duet = null }) {
   const [theme, setTheme] = useState(duet?.profile?.theme || 'blush');
   const [active, setActive] = useState('home');
   const [toast, setToast] = useState('');
+  const [pullDistance,setPullDistance]=useState(0);
+  const [refreshing,setRefreshing]=useState(false);
+  const pullStart=useRef(null),pullValue=useRef(0);
   const [now,setNow]=useState(()=>new Date());
   useEffect(()=>{const timer=window.setInterval(()=>setNow(new Date()),60000);return()=>window.clearInterval(timer);},[]);
   const today = useMemo(() => new Intl.DateTimeFormat('zh-TW', { weekday: 'long', month: 'long', day: 'numeric' }).format(now), [now]);
@@ -62,8 +65,27 @@ function App({ user = null, duet = null }) {
     notify('已複製伴侶邀請連結');
   }
 
+  function updatePull(value){pullValue.current=value;setPullDistance(value);}
+  function handleTouchStart(event){
+    if(refreshing||window.scrollY>1||event.target.closest('.modal-backdrop,input,textarea,select'))return;
+    pullStart.current=event.touches[0].clientY;
+  }
+  function handleTouchMove(event){
+    if(pullStart.current===null)return;
+    const movement=event.touches[0].clientY-pullStart.current;
+    updatePull(movement>0?Math.min(96,movement*.46):0);
+  }
+  async function handleTouchEnd(){
+    pullStart.current=null;
+    if(pullValue.current<68)return updatePull(0);
+    setRefreshing(true);updatePull(56);
+    try{await duet?.refresh?.();setNow(new Date());}
+    finally{window.setTimeout(()=>{setRefreshing(false);updatePull(0);},450);}
+  }
+
   return (
-    <div className={`app theme-${theme} ${active === 'settings' ? 'settings-active' : ''}`}>
+    <div className={`app theme-${theme} ${active === 'settings' ? 'settings-active' : ''}`} onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd} onTouchCancel={()=>{pullStart.current=null;updatePull(0)}}>
+      <div className={`pull-refresh ${pullDistance>2||refreshing?'visible':''} ${refreshing?'refreshing':''}`} style={{transform:`translate(-50%, ${pullDistance-56}px)`}} role="status" aria-live="polite"><RefreshCw size={17}/><span>{refreshing?'正在更新…':pullDistance>=68?'放開即可更新':'下拉重新整理'}</span></div>
       <aside className="sidebar" aria-label="Primary navigation">
         <a className="brand" href="#home" onClick={() => setActive('home')} aria-label="Duet home">
           <span className="brand-mark"><Heart size={18} fill="currentColor" /></span>
