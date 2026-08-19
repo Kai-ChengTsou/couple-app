@@ -26,9 +26,11 @@ function App({ user = null, duet = null }) {
   const today = useMemo(() => new Intl.DateTimeFormat('zh-TW', { weekday: 'long', month: 'long', day: 'numeric' }).format(new Date()), []);
   const displayName = duet?.profile?.display_name || '你';
   const firstName = displayName.split(' ')[0];
+  const memberNames = Object.fromEntries((duet?.members || []).map(member => [member.user_id, member.profile?.display_name || '成員']));
   const liveSchedule = (duet?.events || []).filter(event => new Date(event.starts_at) >= new Date()).slice(0, 3).map(event => {
     const date = new Date(event.starts_at);
-    return { id:event.id, day: String(date.getDate()).padStart(2, '0'), month: date.toLocaleString('zh-TW', {month:'short'}), title:event.title, time:date.toLocaleTimeString('zh-TW',{hour:'numeric',minute:'2-digit'}), icon:CalendarDays };
+    const creatorName=memberNames[event.created_by] || (event.created_by===user?.id ? displayName : '另一半');
+    return { id:event.id, day: String(date.getDate()).padStart(2, '0'), month: date.toLocaleString('zh-TW', {month:'short'}), title:event.title, time:date.toLocaleTimeString('zh-TW',{hour:'numeric',minute:'2-digit'}), creatorName, icon:CalendarDays };
   });
   const liveWishes = (duet?.wishes || []).slice(0, 3).map((wish, index) => ({ id:wish.id, title:wish.title, meta:`${wish.category} · ${wish.status}`, tone:['forest','coral','sky'][index%3], icon:Star }));
   const coupleName = duet?.couple?.name || '我們的空間';
@@ -75,10 +77,10 @@ function App({ user = null, duet = null }) {
       </aside>
 
       <main>
-        {active === 'calendar' ? <CalendarPage events={duet?.events || []} couple={duet?.couple} user={user} onRefresh={duet?.refresh || (()=>{})} onNotify={notify}/>
+        {active === 'calendar' ? <CalendarPage events={duet?.events || []} members={duet?.members || []} couple={duet?.couple} user={user} onRefresh={duet?.refresh || (()=>{})} onNotify={notify}/>
         : active === 'wishlist' ? <WishlistPage items={duet?.wishes || []} couple={duet?.couple} user={user} onRefresh={duet?.refresh || (()=>{})} onNotify={notify}/>
         : active === 'us' ? <OurSpacePage memories={duet?.memories || []} tasks={duet?.tasks || []} couple={duet?.couple} user={user} onRefresh={duet?.refresh || (()=>{})} onNotify={notify}/>
-        : active === 'settings' ? <SettingsPage profile={duet?.profile} couple={duet?.couple} user={user} onRefresh={duet?.refresh || (()=>{})} onNotify={notify} onTheme={changeTheme}/>
+        : active === 'settings' ? <SettingsPage members={duet?.members || []} couple={duet?.couple} user={user} onRefresh={duet?.refresh || (()=>{})} onNotify={notify} onTheme={changeTheme}/>
         : <>
         <header className="topbar">
           <div><p className="eyebrow">{today}</p><h1>晚安，{firstName}。</h1></div>
@@ -106,12 +108,12 @@ function App({ user = null, duet = null }) {
               <button className="text-button" onClick={() => setActive('calendar')}>完整行事曆 <ChevronRight size={16}/></button>
             </div>
             <div className="schedule-list">
-              {liveSchedule.map(({id,day,month,title,time,icon:Icon}) => (
+              {liveSchedule.map(({id,day,month,title,time,creatorName,icon:Icon}) => (
                 <button className="event-row" key={id} onClick={() => setActive('calendar')}>
                   <div className="date-tile"><strong>{day}</strong><span>{month}</span></div>
                   <div className="event-icon both"><Icon size={18}/></div>
-                  <div className="event-copy"><strong>{title}</strong><span><Clock3 size={14}/>{time}</span></div>
-                  <div className="owner-dots" aria-label="共同活動"><i className="avatar avatar-a">{firstName.slice(0,1).toUpperCase()}</i><i className="avatar avatar-b">♥</i></div>
+                  <div className="event-copy"><strong>{title}</strong><span><Clock3 size={14}/>{time}</span><small>由 {creatorName} 建立</small></div>
+                  <div className="owner-dots" aria-label={`由 ${creatorName} 建立`}><i className="avatar avatar-a">{creatorName.slice(0,1).toUpperCase()}</i></div>
                   <ChevronRight className="row-arrow" size={18}/>
                 </button>
               ))}

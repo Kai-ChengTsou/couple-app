@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import {
   CalendarDays, Check, ChevronLeft, ChevronRight, Clock3, Eye,
-  EyeOff, Heart, LoaderCircle, MapPin, Pencil, Plus, Sparkles, Trash2, Users, X
+  EyeOff, Heart, LoaderCircle, MapPin, Pencil, Plus, Sparkles, Trash2, UserRound, Users, X
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
@@ -38,7 +38,7 @@ function toForm(event) {
   return { title:event.title, date:localDate.slice(0,10), time:localDate.slice(11,16), endTime:ends ? new Date(ends.getTime()-ends.getTimezoneOffset()*60000).toISOString().slice(11,16) : '', location:event.location||'', notes:event.notes||'', category:event.category||'date', visibility:event.visibility||'shared' };
 }
 
-export default function CalendarPage({ events, couple, user, onRefresh, onNotify }) {
+export default function CalendarPage({ events, members, couple, user, onRefresh, onNotify }) {
   const [cursor, setCursor] = useState(() => new Date());
   const [selectedDate, setSelectedDate] = useState(() => new Date());
   const [editing, setEditing] = useState(null);
@@ -59,6 +59,8 @@ export default function CalendarPage({ events, couple, user, onRefresh, onNotify
   const selectedKey=selectedDate.toLocaleDateString('en-CA');
   const selectedEvents=(byDate[selectedKey]||[]).sort((a,b)=>new Date(a.starts_at)-new Date(b.starts_at));
   const selectedHolidays=holidayForDate(selectedDate,couple);
+  const memberNames=Object.fromEntries((members||[]).map(member=>[member.user_id,member.profile?.display_name||'成員']));
+  const creatorName=item=>memberNames[item.created_by]||(item.created_by===user?.id?'你':'另一半');
 
   function moveMonth(amount){setCursor(new Date(cursor.getFullYear(),cursor.getMonth()+amount,1));}
   function openNew(date=selectedDate){setEditing(null);setError('');setForm({...emptyForm,date:date.toLocaleDateString('en-CA')});}
@@ -119,7 +121,7 @@ export default function CalendarPage({ events, couple, user, onRefresh, onNotify
         {(selectedEvents.length||selectedHolidays.length) ? <div className="agenda-list">{selectedHolidays.map(item=><article className="agenda-event holiday-event" key={item.id}>
           <i className="agenda-line holiday"/><span><strong>{item.title}</strong><small>{item.description}</small><em><Heart size={12}/> 特別節日</em></span><Heart size={15}/>
         </article>)}{selectedEvents.map(item=><button className="agenda-event" key={item.id} onClick={()=>openEdit(item)}>
-          <i className={`agenda-line ${item.category}`}/><span><strong>{item.title}</strong><small><Clock3 size={13}/>{new Date(item.starts_at).toLocaleTimeString('en',{hour:'numeric',minute:'2-digit'})}{item.location&&<><MapPin size={13}/>{item.location}</>}</small><em>{item.visibility==='shared'?<Users size={12}/>:item.visibility==='surprise'?<Sparkles size={12}/>:<EyeOff size={12}/>} {item.visibility}</em></span><Pencil size={15}/>
+          <i className={`agenda-line ${item.category}`}/><span><strong>{item.title}</strong><small><Clock3 size={13}/>{new Date(item.starts_at).toLocaleTimeString('en',{hour:'numeric',minute:'2-digit'})}{item.location&&<><MapPin size={13}/>{item.location}</>}</small><small className="event-creator"><UserRound size={12}/>由 {creatorName(item)} 建立</small><em>{item.visibility==='shared'?<Users size={12}/>:item.visibility==='surprise'?<Sparkles size={12}/>:<EyeOff size={12}/>} {item.visibility}</em></span><Pencil size={15}/>
         </button>)}</div>:<div className="agenda-empty"><span><CalendarDays size={25}/></span><strong>今天還沒有安排</strong><p>新增一個計畫，或留白給意想不到的美好。</p><button onClick={()=>openNew(selectedDate)}><Plus size={16}/>新增計畫</button></div>}
       </aside>
     </div>

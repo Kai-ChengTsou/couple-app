@@ -1,9 +1,8 @@
 import { useState } from 'react';
-import { AlertTriangle, Check, Copy, Heart, LoaderCircle, LogOut, Palette, UserRound, X } from 'lucide-react';
+import { AlertTriangle, Check, Copy, Heart, LoaderCircle, LogOut, Palette, UsersRound, X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
-export default function SettingsPage({profile,couple,user,onRefresh,onNotify,onTheme}){
-  const [name,setName]=useState(profile?.display_name||'');
+export default function SettingsPage({members,couple,user,onRefresh,onNotify,onTheme}){
   const [space,setSpace]=useState(couple?.name||'');
   const [anniversary,setAnniversary]=useState(couple?.anniversary||'');
   const [saving,setSaving]=useState(false);
@@ -15,12 +14,9 @@ export default function SettingsPage({profile,couple,user,onRefresh,onNotify,onT
     e.preventDefault();
     if(!supabase||!user||!couple)return onNotify('目前無法連接資料庫');
     setSaving(true);
-    const [a,b]=await Promise.all([
-      supabase.from('profiles').update({display_name:name.trim()}).eq('id',user.id),
-      supabase.from('couples').update({name:space.trim(),anniversary:anniversary||null}).eq('id',couple.id)
-    ]);
+    const {error}=await supabase.from('couples').update({name:space.trim(),anniversary:anniversary||null}).eq('id',couple.id);
     setSaving(false);
-    if(a.error||b.error)return onNotify(a.error?.message||b.error?.message);
+    if(error)return onNotify(error.message);
     await onRefresh();
     onNotify('設定已儲存');
   }
@@ -41,15 +37,19 @@ export default function SettingsPage({profile,couple,user,onRefresh,onNotify,onT
   }
 
   return <section className="feature-page settings-page">
-    <header className="page-title-row"><div><p className="eyebrow">打造專屬風格</p><h1>設定</h1><p>調整名字、重要日期、個人主題與伴侶邀請。</p></div></header>
+    <header className="page-title-row"><div><p className="eyebrow">你們的小天地</p><h1>設定</h1><p>管理共同空間、重要日期與你的個人主題。</p></div></header>
     <div className="settings-grid">
-      <form className="settings-card" onSubmit={save}>
-        <span className="settings-icon"><UserRound/></span><h2>共同資料</h2>
-        <label>你的名字<input value={name} onChange={e=>setName(e.target.value)} required/></label>
+      <div className="settings-stack">
+        <section className="settings-card members-card"><span className="settings-icon"><UsersRound/></span><h2>我們</h2><p>空間裡的名字由加入時設定，這裡只顯示、不會被更改。</p>
+          <div className="member-list">{(members||[]).map(member=>{const memberName=member.profile?.display_name||'成員';return <div className="member-row" key={member.user_id}><i>{memberName.slice(0,1).toUpperCase()}</i><span><strong>{memberName}</strong><small>{member.user_id===user?.id?'你':'另一半'}</small></span></div>})}{(members||[]).length<2&&<div className="member-row waiting"><i>＋</i><span><strong>等待另一半加入</strong><small>使用下方邀請連結</small></span></div>}</div>
+        </section>
+        <form className="settings-card" onSubmit={save}>
+        <span className="settings-icon"><Heart/></span><h2>共同資料</h2>
         <label>空間名稱<input value={space} onChange={e=>setSpace(e.target.value)} required/></label>
         <label>紀念日<input type="date" value={anniversary} onChange={e=>setAnniversary(e.target.value)}/></label>
         <button className="auth-submit" disabled={saving}>{saving?<LoaderCircle className="spin"/>:<><Check size={17}/>儲存變更</>}</button>
       </form>
+      </div>
       <div className="settings-stack">
         <section className="settings-card"><span className="settings-icon"><Palette/></span><h2>你的主題</h2><p>兩個人都可以選擇自己喜歡的外觀。</p><div className="settings-themes"><button onClick={()=>onTheme('blush')}><i className="swatch blush"/>暖粉</button><button onClick={()=>onTheme('midnight')}><i className="swatch midnight"/>靜藍</button></div></section>
         <section className="settings-card invite-card"><span className="settings-icon"><Heart/></span><h2>邀請另一半</h2><p>這個私人空間只能再加入一個人。</p><strong>{couple?.invite_code||'邀請碼'}</strong><button className="outline-button" onClick={copy}><Copy size={17}/>複製私人邀請連結</button></section>

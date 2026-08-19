@@ -101,3 +101,37 @@ button:focus-visible,a:focus-visible{outline:3px solid color-mix(in srgb,var(--p
 .event-chip.holiday{background:#fff0d8;color:#9a5a18}.agenda-line.holiday{background:#e4a34f}.holiday-event{cursor:default}.holiday-event:hover{background:transparent}.holiday-event>svg{color:#d58d38;fill:#f7d7a6}.holiday-event em{background:#fff0d8;color:#9a5a18}
 .calendar-legend>span{display:flex;align-items:center;gap:5px}.calendar-legend .holiday-dot{background:#e4a34f}.calendar-day.has-events{background:color-mix(in srgb,var(--soft) 58%,var(--surface))}.calendar-day.has-holiday{background:#fff8e9}.calendar-day.has-events.has-holiday{background:linear-gradient(135deg,color-mix(in srgb,var(--soft) 64%,var(--surface)),#fff5df)}.calendar-day.muted-day.has-events,.calendar-day.muted-day.has-holiday{opacity:.62}.day-status-icons{position:absolute;top:9px;right:8px;display:flex;align-items:center;gap:3px;color:var(--primary)}.day-status-icons svg{width:12px;height:12px;stroke-width:2.2}.calendar-day.has-holiday .day-status-icons svg:last-child{color:#d58d38}
 @media(max-width:760px){.day-status-icons{top:5px;right:5px;gap:2px}.day-status-icons svg{width:9px;height:9px}.calendar-day.has-events{background:color-mix(in srgb,var(--soft) 70%,var(--surface))}.calendar-day.has-holiday{background:#fff5df}}
+
+/* iPhone-first polish */
+html{-webkit-text-size-adjust:100%;background:#f8f4f0}
+body{overflow-x:hidden;overscroll-behavior-y:none;-webkit-tap-highlight-color:transparent}
+button,a,input,select,textarea{touch-action:manipulation}
+img{-webkit-user-drag:none}
+.event-copy{min-width:0}.event-copy strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.event-copy>small{display:block;margin-top:3px;color:var(--primary);font-size:9px;font-weight:600}
+.event-creator{color:var(--primary)!important;font-weight:600}
+.member-list{display:grid;gap:9px;margin-top:17px}.member-row{display:grid;grid-template-columns:39px minmax(0,1fr);align-items:center;gap:11px;padding:10px;border:1px solid var(--line);border-radius:13px;background:color-mix(in srgb,var(--soft) 28%,var(--surface))}.member-row>i{width:39px;height:39px;border-radius:50%;display:grid;place-items:center;background:var(--soft-2);color:var(--primary-deep);font-size:12px;font-weight:700;font-style:normal}.member-row span,.member-row strong,.member-row small{display:block}.member-row strong{font-size:12px}.member-row small{margin-top:3px;color:var(--muted);font-size:9px}.member-row.waiting{border-style:dashed;background:transparent}.member-row.waiting>i{background:var(--soft);color:var(--primary)}
+
+@media(max-width:760px){
+  input,select,textarea{font-size:16px!important}
+  .modal-backdrop{overflow:hidden;padding-top:env(safe-area-inset-top)}
+  .modal,.event-modal{width:100%;max-width:100%;max-height:calc(100dvh - env(safe-area-inset-top));padding:23px 18px calc(18px + env(safe-area-inset-bottom));overflow-x:hidden;overscroll-behavior:contain}
+  .event-modal h2{margin-bottom:0;font-size:28px;line-height:1.08;padding-right:48px}
+  .event-modal>.eyebrow{padding-right:48px}
+  .event-form{grid-template-columns:repeat(2,minmax(0,1fr));gap:13px 10px;width:100%;min-width:0;margin-top:19px}
+  .event-form>*{min-width:0}
+  .event-form .full{grid-column:1/-1}
+  .event-form input,.event-form select,.event-form textarea{display:block;min-width:0;max-width:100%;width:100%;border-radius:12px}
+  .event-form input[type=date],.event-form input[type=time]{appearance:none;-webkit-appearance:none;padding-inline:11px}
+  .event-form textarea{min-height:84px}
+  .visibility-picker{grid-template-columns:repeat(3,minmax(0,1fr));min-width:0}
+  .visibility-picker button{min-width:0;height:46px;padding:0 5px;gap:4px;font-size:10px}
+  .visibility-picker button span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .event-form-actions{position:sticky;z-index:4;bottom:calc(-18px - env(safe-area-inset-bottom));margin:4px -18px calc(-18px - env(safe-area-inset-bottom));padding:11px 18px calc(11px + env(safe-area-inset-bottom));border-top:1px solid var(--line);background:color-mix(in srgb,var(--surface) 94%,transparent);backdrop-filter:blur(14px);flex-wrap:nowrap}
+  .event-form-actions>span{display:block}
+  .event-form-actions .cancel-button{padding-inline:9px}
+  .event-form-actions .save-event{width:auto;min-width:124px;padding-inline:13px}
+  .event-form-actions .delete-button{margin-right:0;padding-inline:8px;font-size:0}
+  .event-form-actions .delete-button svg{width:19px;height:19px}
+  .settings-card{overflow:hidden}
+  .settings-card input{width:100%;min-width:0}
+}
