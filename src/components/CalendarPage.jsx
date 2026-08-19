@@ -1,12 +1,35 @@
 import { useMemo, useState } from 'react';
 import {
   CalendarDays, Check, ChevronLeft, ChevronRight, Clock3, Eye,
-  EyeOff, LoaderCircle, MapPin, Pencil, Plus, Sparkles, Trash2, Users, X
+  EyeOff, Heart, LoaderCircle, MapPin, Pencil, Plus, Sparkles, Trash2, Users, X
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 const categories = ['date', 'personal', 'work', 'family', 'anniversary'];
 const emptyForm = { title:'', date:'', time:'19:00', endTime:'', location:'', notes:'', category:'date', visibility:'shared' };
+const lunarDateFormatter = new Intl.DateTimeFormat('zh-TW-u-ca-chinese',{month:'numeric',day:'numeric'});
+const annualHolidays = {
+  '01-01': ['新年第一天','一起迎接新的一年。'],
+  '02-14': ['西洋情人節','留一點時間給彼此。'],
+  '03-14': ['白色情人節','回應心意的甜蜜日子。'],
+  '05-20': ['520 告白日','把喜歡大聲說出來。'],
+  '12-24': ['平安夜','一起度過溫暖的夜晚。'],
+  '12-25': ['聖誕節','交換祝福與小驚喜。'],
+  '12-31': ['跨年夜','一起倒數迎接明年。'],
+};
+
+function holidayForDate(date,couple){
+  const monthDay=`${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
+  const holidays=[];
+  if(annualHolidays[monthDay])holidays.push({id:`holiday-${monthDay}`,title:annualHolidays[monthDay][0],description:annualHolidays[monthDay][1],isHoliday:true});
+  const lunarParts=Object.fromEntries(lunarDateFormatter.formatToParts(date).filter(part=>part.type==='month'||part.type==='day').map(part=>[part.type,part.value]));
+  if(Number(lunarParts.month)===7&&Number(lunarParts.day)===7)holidays.push({id:`qixi-${date.getFullYear()}`,title:'七夕情人節',description:'屬於彼此的浪漫日子。',isHoliday:true});
+  if(couple?.anniversary){
+    const anniversary=String(couple.anniversary).slice(5,10);
+    if(anniversary===monthDay)holidays.push({id:`anniversary-${monthDay}`,title:'我們的紀念日',description:'記得一起慶祝這個重要的日子。',isHoliday:true});
+  }
+  return holidays;
+}
 
 function toForm(event) {
   const starts = new Date(event.starts_at);
@@ -35,6 +58,7 @@ export default function CalendarPage({ events, couple, user, onRefresh, onNotify
   },{}),[events]);
   const selectedKey=selectedDate.toLocaleDateString('en-CA');
   const selectedEvents=(byDate[selectedKey]||[]).sort((a,b)=>new Date(a.starts_at)-new Date(b.starts_at));
+  const selectedHolidays=holidayForDate(selectedDate,couple);
 
   function moveMonth(amount){setCursor(new Date(cursor.getFullYear(),cursor.getMonth()+amount,1));}
   function openNew(date=selectedDate){setEditing(null);setError('');setForm({...emptyForm,date:date.toLocaleDateString('en-CA')});}
@@ -79,9 +103,10 @@ export default function CalendarPage({ events, couple, user, onRefresh, onNotify
         <div className="month-grid">
           {days.map(date=>{
             const key=date.toLocaleDateString('en-CA'), dayEvents=byDate[key]||[], inMonth=date.getMonth()===cursor.getMonth(), isToday=key===new Date().toLocaleDateString('en-CA'), selected=key===selectedKey;
+            const cellItems=[...holidayForDate(date,couple),...dayEvents];
             return <button key={key} className={`calendar-day ${!inMonth?'muted-day':''} ${isToday?'today':''} ${selected?'selected':''}`} onClick={()=>setSelectedDate(date)} onDoubleClick={()=>openNew(date)}>
               <span className="day-number">{date.getDate()}</span>
-              <span className="day-events">{dayEvents.slice(0,3).map(item=><i key={item.id} className={`event-chip ${item.visibility}`}><span>{new Date(item.starts_at).toLocaleTimeString('en',{hour:'numeric'})}</span>{item.title}</i>)}{dayEvents.length>3&&<small>+{dayEvents.length-3} more</small>}</span>
+              <span className="day-events">{cellItems.slice(0,3).map(item=><i key={item.id} className={`event-chip ${item.isHoliday?'holiday':item.visibility}`}>{!item.isHoliday&&<span>{new Date(item.starts_at).toLocaleTimeString('zh-TW',{hour:'numeric'})}</span>}{item.title}</i>)}{cellItems.length>3&&<small>還有 {cellItems.length-3} 項</small>}</span>
             </button>;
           })}
         </div>
@@ -89,7 +114,9 @@ export default function CalendarPage({ events, couple, user, onRefresh, onNotify
       <aside className="day-agenda panel">
         <div className="agenda-date"><span>{selectedDate.toLocaleDateString('en',{weekday:'long'})}</span><strong>{selectedDate.getDate()}</strong><small>{selectedDate.toLocaleDateString('en',{month:'long',year:'numeric'})}</small></div>
         <div className="agenda-heading"><h3>今天的安排</h3><button className="icon-button" aria-label="新增當日行程" onClick={()=>openNew(selectedDate)}><Plus size={18}/></button></div>
-        {selectedEvents.length ? <div className="agenda-list">{selectedEvents.map(item=><button className="agenda-event" key={item.id} onClick={()=>openEdit(item)}>
+        {(selectedEvents.length||selectedHolidays.length) ? <div className="agenda-list">{selectedHolidays.map(item=><article className="agenda-event holiday-event" key={item.id}>
+          <i className="agenda-line holiday"/><span><strong>{item.title}</strong><small>{item.description}</small><em><Heart size={12}/> 特別節日</em></span><Heart size={15}/>
+        </article>)}{selectedEvents.map(item=><button className="agenda-event" key={item.id} onClick={()=>openEdit(item)}>
           <i className={`agenda-line ${item.category}`}/><span><strong>{item.title}</strong><small><Clock3 size={13}/>{new Date(item.starts_at).toLocaleTimeString('en',{hour:'numeric',minute:'2-digit'})}{item.location&&<><MapPin size={13}/>{item.location}</>}</small><em>{item.visibility==='shared'?<Users size={12}/>:item.visibility==='surprise'?<Sparkles size={12}/>:<EyeOff size={12}/>} {item.visibility}</em></span><Pencil size={15}/>
         </button>)}</div>:<div className="agenda-empty"><span><CalendarDays size={25}/></span><strong>今天還沒有安排</strong><p>新增一個計畫，或留白給意想不到的美好。</p><button onClick={()=>openNew(selectedDate)}><Plus size={16}/>新增計畫</button></div>}
       </aside>
