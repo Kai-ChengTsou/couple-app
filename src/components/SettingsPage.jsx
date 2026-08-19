@@ -3,7 +3,9 @@ import { AlertTriangle, Check, Copy, Heart, LoaderCircle, LogOut, Palette, Users
 import { supabase } from '../lib/supabase';
 import PickerField from './PickerField';
 
-export default function SettingsPage({members,couple,user,onRefresh,onNotify,onTheme}){
+const themes=[['blush','暖粉'],['midnight','靜藍'],['lilac','夢紫'],['sage','森綠'],['sunset','蜜桃'],['latte','奶茶']];
+
+export default function SettingsPage({members,couple,user,theme,onRefresh,onNotify,onTheme}){
   const ownMember=(members||[]).find(member=>member.user_id===user?.id);
   const [ownName,setOwnName]=useState(ownMember?.profile?.display_name||'');
   const [savingName,setSavingName]=useState(false);
@@ -69,7 +71,7 @@ export default function SettingsPage({members,couple,user,onRefresh,onNotify,onT
       </form>
       </div>
       <div className="settings-stack">
-        <section className="settings-card"><span className="settings-icon"><Palette/></span><h2>你的主題</h2><p>兩個人都可以選擇自己喜歡的外觀。</p><div className="settings-themes"><button onClick={()=>onTheme('blush')}><i className="swatch blush"/>暖粉</button><button onClick={()=>onTheme('midnight')}><i className="swatch midnight"/>靜藍</button></div></section>
+        <section className="settings-card"><span className="settings-icon"><Palette/></span><h2>你的主題</h2><p>兩個人都可以選擇自己喜歡的外觀。</p><div className="settings-themes">{themes.map(([value,label])=><button type="button" key={value} className={theme===value?'selected':''} aria-pressed={theme===value} onClick={()=>onTheme(value)}><i className={`swatch ${value}`}/>{label}{theme===value&&<Check size={14}/>}</button>)}</div></section>
         <section className="settings-card invite-card"><span className="settings-icon"><Heart/></span><h2>邀請另一半</h2><p>這個私人空間只能再加入一個人。</p><strong>{couple?.invite_code||'邀請碼'}</strong><button className="outline-button" onClick={copy}><Copy size={17}/>複製私人邀請連結</button></section>
         <section className="settings-card leave-card"><span className="settings-icon"><LogOut/></span><h2>離開共同空間</h2><p>換裝置或想加入其他空間時，可以從這台裝置離開。</p><button className="leave-space-button" onClick={()=>{setLeaveError('');setLeaveOpen(true)}}><LogOut size={17}/>離開這個空間</button></section>
       </div>

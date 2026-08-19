@@ -7,7 +7,7 @@ create table public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   display_name text not null default 'New partner',
   avatar_url text,
-  theme text not null default 'blush' check (theme in ('blush', 'midnight')),
+  theme text not null default 'blush' check (theme in ('blush', 'midnight', 'lilac', 'sage', 'sunset', 'latte')),
   created_at timestamptz not null default now()
 );
 

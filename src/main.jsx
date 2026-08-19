@@ -86,7 +86,7 @@ function App({ user = null, duet = null }) {
         {active === 'calendar' ? <CalendarPage events={duet?.events || []} members={duet?.members || []} couple={duet?.couple} user={user} onRefresh={duet?.refresh || (()=>{})} onNotify={notify}/>
         : active === 'wishlist' ? <WishlistPage items={duet?.wishes || []} couple={duet?.couple} user={user} onRefresh={duet?.refresh || (()=>{})} onNotify={notify}/>
         : active === 'us' ? <OurSpacePage memories={duet?.memories || []} tasks={duet?.tasks || []} couple={duet?.couple} user={user} onRefresh={duet?.refresh || (()=>{})} onNotify={notify}/>
-        : active === 'settings' ? <SettingsPage members={duet?.members || []} couple={duet?.couple} user={user} onRefresh={duet?.refresh || (()=>{})} onNotify={notify} onTheme={changeTheme}/>
+        : active === 'settings' ? <SettingsPage members={duet?.members || []} couple={duet?.couple} user={user} theme={theme} onRefresh={duet?.refresh || (()=>{})} onNotify={notify} onTheme={changeTheme}/>
         : <>
         <header className="topbar">
           <div><p className="eyebrow">{today}</p><h1>晚安，{firstName}。</h1></div>
