@@ -14,14 +14,16 @@ export default function QuickStart() {
 
   async function submit(event) {
     event.preventDefault(); setLoading(true); setError('');
+    sessionStorage.setItem('duet-setup-pending', String(Date.now()));
     const { data, error: authError } = await supabase.auth.signInAnonymously({ options: { data: { display_name: displayName.trim() } } });
-    if (authError) { setLoading(false); return setError(authError.message); }
+    if (authError) { sessionStorage.removeItem('duet-setup-pending'); setLoading(false); return setError(authError.message); }
     const { error: setupError } = mode === 'create'
       ? await supabase.rpc('create_couple', { couple_name: spaceName.trim() })
       : await supabase.rpc('join_couple', { code: code.trim().toUpperCase() });
     if (setupError) {
-      await supabase.auth.signOut(); setLoading(false); return setError(setupError.message);
+      sessionStorage.removeItem('duet-setup-pending'); await supabase.auth.signOut(); setLoading(false); return setError(setupError.message);
     }
+    sessionStorage.removeItem('duet-setup-pending');
     if (data.session) window.location.replace('/');
   }
 

@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import {
   CalendarDays, Check, ChevronLeft, ChevronRight, Clock3, Gift,
-  Copy, Heart, Home, Plus, Settings2, Sparkles, Star, X
+  Copy, Heart, Home, Plus, Settings2, Sparkles, Star
 } from 'lucide-react';
 import './styles.css';
 import QuickStart from './components/QuickStart';
@@ -22,7 +22,6 @@ const nav = [
 function App({ user = null, duet = null }) {
   const [theme, setTheme] = useState(duet?.profile?.theme || 'blush');
   const [active, setActive] = useState('home');
-  const [modal, setModal] = useState(false);
   const [toast, setToast] = useState('');
   const today = useMemo(() => new Intl.DateTimeFormat('zh-TW', { weekday: 'long', month: 'long', day: 'numeric' }).format(new Date()), []);
   const displayName = duet?.profile?.display_name || '你';
@@ -83,13 +82,6 @@ function App({ user = null, duet = null }) {
         : <>
         <header className="topbar">
           <div><p className="eyebrow">{today}</p><h1>晚安，{firstName}。</h1></div>
-          <div className="top-actions">
-            <div className="theme-switch" aria-label="Choose your theme">
-              <button aria-label="暖粉主題" className={theme === 'blush' ? 'selected' : ''} onClick={() => changeTheme('blush')}><span className="swatch blush" />暖粉</button>
-              <button aria-label="靜藍主題" className={theme === 'midnight' ? 'selected' : ''} onClick={() => changeTheme('midnight')}><span className="swatch midnight" />靜藍</button>
-            </div>
-            <button className="add-button" aria-label="新增內容" onClick={() => setModal(true)}><Plus size={19} />新增</button>
-          </div>
         </header>
 
         <section className="hero-card">
@@ -125,7 +117,7 @@ function App({ user = null, duet = null }) {
               ))}
               {!liveSchedule.length&&<div className="home-empty"><CalendarDays size={22}/><span><strong>還沒有即將到來的行程</strong><small>建立你們的第一個共同計畫。</small></span></div>}
             </div>
-            <button className="outline-button" onClick={() => setModal(true)}><Plus size={18}/> 新增行程</button>
+            <button className="outline-button" onClick={() => setActive('calendar')}><Plus size={18}/> 新增行程</button>
           </div>
 
           <aside className="right-stack">
@@ -153,15 +145,6 @@ function App({ user = null, duet = null }) {
         <button className={active === 'settings' ? 'active' : ''} onClick={()=>setActive('settings')}><Settings2 size={21}/><span>設定</span></button>
       </nav>
 
-      {modal && <div className="modal-backdrop" role="presentation" onMouseDown={(e) => e.target === e.currentTarget && setModal(false)}>
-        <section className="modal" role="dialog" aria-modal="true" aria-labelledby="add-title">
-          <button className="icon-button close" aria-label="Close" onClick={() => setModal(false)}><X size={20}/></button>
-          <p className="eyebrow">一起安排一下</p><h2 id="add-title">想新增什麼？</h2>
-          <div className="add-options">
-            {[['行事曆活動', CalendarDays, 'calendar'], ['願望清單', Star, 'wishlist'], ['共同任務', Check, 'us'], ['珍藏回憶', Heart, 'us']].map(([label,Icon,target]) => <button key={label} onClick={() => {setModal(false);setActive(target);}}><Icon size={22}/><span>{label}</span><ChevronRight size={18}/></button>)}
-          </div>
-        </section>
-      </div>}
       {toast && <div className="toast" role="status"><Check size={17}/>{toast}</div>}
     </div>
   );
@@ -169,7 +152,7 @@ function App({ user = null, duet = null }) {
 
 function ConnectedApp({ user }) {
   const duet = useDuetData(user);
-  if (duet.loading) return <div className="loading-screen"><Heart fill="currentColor"/><p>Opening your duet…</p></div>;
+  if (duet.loading) return <div className="loading-screen"><Heart fill="currentColor"/><p>正在打開你們的小天地…</p></div>;
   if (!duet.couple) return <CoupleSetup onReady={duet.refresh}/>;
   return <App user={user} duet={duet}/>;
 }
@@ -183,7 +166,9 @@ function Root() {
     const { data } = supabase.auth.onAuthStateChange((_event, nextSession) => setSession(nextSession));
     return () => data.subscription.unsubscribe();
   }, []);
-  if (!ready) return <div className="loading-screen"><Heart fill="currentColor"/><p>Opening your duet…</p></div>;
+  const setupStartedAt = Number(sessionStorage.getItem('duet-setup-pending') || 0);
+  const setupPending = Boolean(session && setupStartedAt && Date.now() - setupStartedAt < 120000);
+  if (!ready || setupPending) return <div className="loading-screen"><Heart fill="currentColor"/><p>{setupPending?'正在建立你們的小天地…':'正在打開你們的小天地…'}</p></div>;
   if (!isSupabaseConfigured) return <div className="loading-screen"><Heart fill="currentColor"/><p>尚未連接 Supabase，請先設定環境變數。</p></div>;
   if (!session) return <QuickStart/>;
   return <ConnectedApp user={session.user}/>;
