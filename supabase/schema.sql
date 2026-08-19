@@ -148,4 +148,21 @@ end; $$;
 grant execute on function public.create_couple(text) to authenticated;
 grant execute on function public.join_couple(text) to authenticated;
 
+-- Leaving keeps the space while another partner remains. If the final member
+-- leaves, deleting the couple cascades to all shared records.
+create or replace function public.leave_couple()
+returns boolean language plpgsql security definer set search_path = public
+as $$ declare target_couple uuid; deleted_space boolean := false; begin
+  select couple_id into target_couple from public.couple_members where user_id = auth.uid() limit 1;
+  if target_couple is null then return false; end if;
+  delete from public.couple_members where couple_id = target_couple and user_id = auth.uid();
+  if not exists (select 1 from public.couple_members where couple_id = target_couple) then
+    delete from public.couples where id = target_couple;
+    deleted_space := true;
+  end if;
+  return deleted_space;
+end; $$;
+
+grant execute on function public.leave_couple() to authenticated;
+
 alter publication supabase_realtime add table public.events, public.wishlist_items, public.tasks, public.memories;
