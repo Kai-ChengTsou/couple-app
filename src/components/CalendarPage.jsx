@@ -42,9 +42,10 @@ function toForm(event) {
   return { title:event.title, date:localDate.slice(0,10), time:localDate.slice(11,16), endTime:ends ? new Date(ends.getTime()-ends.getTimezoneOffset()*60000).toISOString().slice(11,16) : '', location:event.location||'', notes:event.notes||'', category:event.category||'date', eventScope:event.event_scope||'shared', visibility:event.visibility||'shared' };
 }
 
-export default function CalendarPage({ events, members, couple, user, onRefresh, onNotify }) {
-  const [cursor, setCursor] = useState(() => new Date());
-  const [selectedDate, setSelectedDate] = useState(() => new Date());
+export default function CalendarPage({ initialDate, events, members, couple, user, onRefresh, onNotify }) {
+  const startingDate=()=>initialDate?new Date(`${initialDate}T12:00:00`):new Date();
+  const [cursor, setCursor] = useState(startingDate);
+  const [selectedDate, setSelectedDate] = useState(startingDate);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
@@ -122,7 +123,7 @@ export default function CalendarPage({ events, members, couple, user, onRefresh,
       </div>
       <aside className="day-agenda panel">
         <div className="agenda-date"><span>{selectedDate.toLocaleDateString('en',{weekday:'long'})}</span><strong>{selectedDate.getDate()}</strong><small>{selectedDate.toLocaleDateString('en',{month:'long',year:'numeric'})}</small></div>
-        <div className="agenda-heading"><h3>今天的安排</h3><button className="icon-button" aria-label="新增當日行程" onClick={()=>openNew(selectedDate)}><Plus size={18}/></button></div>
+        <div className="agenda-heading"><h3>當天的安排</h3><button className="icon-button" aria-label="新增當日行程" onClick={()=>openNew(selectedDate)}><Plus size={18}/></button></div>
         {(selectedEvents.length||selectedHolidays.length) ? <div className="agenda-list">{selectedHolidays.map(item=><article className="agenda-event holiday-event" key={item.id}>
           <i className="agenda-line holiday"/><span><strong>{item.title}</strong><small>{item.description}</small><em><Heart size={12}/> 特別節日</em></span><Heart size={15}/>
         </article>)}{selectedEvents.map(item=><button className="agenda-event" key={item.id} onClick={()=>openEdit(item)}>

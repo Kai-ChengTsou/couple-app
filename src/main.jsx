@@ -27,6 +27,7 @@ const eventScopeLabels = {shared:'共同安排'};
 function App({ user = null, duet = null }) {
   const [theme, setTheme] = useState(duet?.profile?.theme || 'blush');
   const [active, setActive] = useState('home');
+  const [calendarTarget,setCalendarTarget]=useState(null);
   const [toast, setToast] = useState('');
   const [pullDistance,setPullDistance]=useState(0);
   const [refreshing,setRefreshing]=useState(false);
@@ -44,7 +45,7 @@ function App({ user = null, duet = null }) {
     const date = new Date(event.starts_at);
     const creatorName=memberNames[event.created_by] || (event.created_by===user?.id ? displayName : '另一半');
     const scopeLabel=event.event_scope==='personal'?(event.created_by===user?.id?'我的行程':`${creatorName} 的行程`):eventScopeLabels.shared;
-    return { id:event.id, day: String(date.getDate()).padStart(2, '0'), month: date.toLocaleString('zh-TW', {month:'short'}), title:event.title, time:date.toLocaleTimeString('zh-TW',{hour:'numeric',minute:'2-digit'}), creatorName, creatorTone:memberTones[event.created_by]||'avatar-a', category:event.category||'date', categoryLabel:eventCategoryLabels[event.category]||'其他', scopeLabel, icon:CalendarDays };
+    return { id:event.id, dateKey:date.toLocaleDateString('en-CA'), day: String(date.getDate()).padStart(2, '0'), month: date.toLocaleString('zh-TW', {month:'short'}), title:event.title, time:date.toLocaleTimeString('zh-TW',{hour:'numeric',minute:'2-digit'}), creatorName, creatorTone:memberTones[event.created_by]||'avatar-a', category:event.category||'date', categoryLabel:eventCategoryLabels[event.category]||'其他', scopeLabel, icon:CalendarDays };
   });
   const liveWishes = (duet?.wishes || []).slice(0, 3).map((wish, index) => ({ id:wish.id, title:wish.title, meta:`${wishCategoryLabels[wish.category]||wish.category} · ${wishStatusLabels[wish.status]||wish.status}`, tone:['forest','coral','sky'][index%3], icon:Star }));
   const coupleName = duet?.couple?.name || '我們的空間';
@@ -110,7 +111,7 @@ function App({ user = null, duet = null }) {
       </aside>
 
       <main>
-        {active === 'calendar' ? <CalendarPage events={duet?.events || []} members={duet?.members || []} couple={duet?.couple} user={user} onRefresh={duet?.refresh || (()=>{})} onNotify={notify}/>
+        {active === 'calendar' ? <CalendarPage initialDate={calendarTarget} events={duet?.events || []} members={duet?.members || []} couple={duet?.couple} user={user} onRefresh={duet?.refresh || (()=>{})} onNotify={notify}/>
         : active === 'wishlist' ? <WishlistPage items={duet?.wishes || []} couple={duet?.couple} user={user} onRefresh={duet?.refresh || (()=>{})} onNotify={notify}/>
         : active === 'us' ? <OurSpacePage memories={duet?.memories || []} tasks={duet?.tasks || []} couple={duet?.couple} user={user} onRefresh={duet?.refresh || (()=>{})} onNotify={notify}/>
         : active === 'settings' ? <SettingsPage members={duet?.members || []} couple={duet?.couple} user={user} theme={theme} onRefresh={duet?.refresh || (()=>{})} onNotify={notify} onTheme={changeTheme}/>
@@ -141,8 +142,8 @@ function App({ user = null, duet = null }) {
               <button className="text-button" onClick={() => setActive('calendar')}>完整行事曆 <ChevronRight size={16}/></button>
             </div>
             <div className="schedule-list">
-              {liveSchedule.map(({id,day,month,title,time,creatorName,creatorTone,category,categoryLabel,scopeLabel,icon:Icon}) => (
-                <button className="event-row" key={id} onClick={() => setActive('calendar')}>
+              {liveSchedule.map(({id,dateKey,day,month,title,time,creatorName,creatorTone,category,categoryLabel,scopeLabel,icon:Icon}) => (
+                <button className="event-row" key={id} onClick={() => {setCalendarTarget(dateKey);setActive('calendar');window.scrollTo({top:0,behavior:'smooth'})}}>
                   <div className="date-tile"><strong>{day}</strong><span>{month}</span></div>
                   <div className={`event-icon category-${category}`}><Icon size={18}/></div>
                   <div className="event-copy"><strong>{title}</strong><span><Clock3 size={14}/>{time}</span><small><b className={`category-text category-${category}`}>{categoryLabel}</b> · {scopeLabel} · 由 {creatorName} 建立</small></div>
