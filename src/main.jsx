@@ -20,6 +20,8 @@ const nav = [
 ];
 const wishCategoryLabels = {'date idea':'約會',place:'地點',trip:'旅行',gift:'禮物',food:'美食',movie:'電影','shared purchase':'共同購買'};
 const wishStatusLabels = {idea:'想法',planned:'已計畫',completed:'已完成'};
+const eventCategoryLabels = {date:'約會',personal:'個人',work:'工作',family:'家庭',anniversary:'紀念日'};
+const eventScopeLabels = {shared:'共同安排',personal:'我的行程'};
 
 function App({ user = null, duet = null }) {
   const [theme, setTheme] = useState(duet?.profile?.theme || 'blush');
@@ -32,7 +34,7 @@ function App({ user = null, duet = null }) {
   const liveSchedule = (duet?.events || []).filter(event => new Date(event.starts_at) >= new Date()).slice(0, 3).map(event => {
     const date = new Date(event.starts_at);
     const creatorName=memberNames[event.created_by] || (event.created_by===user?.id ? displayName : '另一半');
-    return { id:event.id, day: String(date.getDate()).padStart(2, '0'), month: date.toLocaleString('zh-TW', {month:'short'}), title:event.title, time:date.toLocaleTimeString('zh-TW',{hour:'numeric',minute:'2-digit'}), creatorName, icon:CalendarDays };
+    return { id:event.id, day: String(date.getDate()).padStart(2, '0'), month: date.toLocaleString('zh-TW', {month:'short'}), title:event.title, time:date.toLocaleTimeString('zh-TW',{hour:'numeric',minute:'2-digit'}), creatorName, category:event.category||'date', categoryLabel:eventCategoryLabels[event.category]||'其他', scopeLabel:eventScopeLabels[event.event_scope]||eventScopeLabels.shared, icon:CalendarDays };
   });
   const liveWishes = (duet?.wishes || []).slice(0, 3).map((wish, index) => ({ id:wish.id, title:wish.title, meta:`${wishCategoryLabels[wish.category]||wish.category} · ${wishStatusLabels[wish.status]||wish.status}`, tone:['forest','coral','sky'][index%3], icon:Star }));
   const coupleName = duet?.couple?.name || '我們的空間';
@@ -110,11 +112,11 @@ function App({ user = null, duet = null }) {
               <button className="text-button" onClick={() => setActive('calendar')}>完整行事曆 <ChevronRight size={16}/></button>
             </div>
             <div className="schedule-list">
-              {liveSchedule.map(({id,day,month,title,time,creatorName,icon:Icon}) => (
+              {liveSchedule.map(({id,day,month,title,time,creatorName,category,categoryLabel,scopeLabel,icon:Icon}) => (
                 <button className="event-row" key={id} onClick={() => setActive('calendar')}>
                   <div className="date-tile"><strong>{day}</strong><span>{month}</span></div>
-                  <div className="event-icon both"><Icon size={18}/></div>
-                  <div className="event-copy"><strong>{title}</strong><span><Clock3 size={14}/>{time}</span><small>由 {creatorName} 建立</small></div>
+                  <div className={`event-icon category-${category}`}><Icon size={18}/></div>
+                  <div className="event-copy"><strong>{title}</strong><span><Clock3 size={14}/>{time}</span><small><b className={`category-text category-${category}`}>{categoryLabel}</b> · {scopeLabel} · 由 {creatorName} 建立</small></div>
                   <div className="owner-dots" aria-label={`由 ${creatorName} 建立`}><i className="avatar avatar-a">{creatorName.slice(0,1).toUpperCase()}</i></div>
                   <ChevronRight className="row-arrow" size={18}/>
                 </button>
