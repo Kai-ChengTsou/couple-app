@@ -149,8 +149,12 @@ img{-webkit-user-drag:none}
 .field-label{display:flex;align-items:center;gap:6px;min-height:14px;line-height:1.2}
 .field-label small{margin:0}
 @media(max-width:760px){
-  .page-title-row .add-button,.add-button{display:flex!important;align-items:center!important;justify-content:center!important;padding:0!important;line-height:0!important}
-  .add-button svg{display:block!important;flex:0 0 auto;margin:0!important;transform:translate(0,0)!important}
+  .page-title-row .add-button,.add-button{position:relative;display:block!important;padding:0!important;line-height:0!important}
+  .page-title-row .add-button svg,.add-button svg{display:none!important}
+  .page-title-row .add-button::before,.page-title-row .add-button::after,.add-button::before,.add-button::after{content:"";position:absolute;z-index:1;left:50%;top:50%;width:18px;height:2px;border-radius:99px;background:currentColor;transform:translate(-50%,-50%)}
+  .page-title-row .add-button::after,.add-button::after{transform:translate(-50%,-50%) rotate(90deg)}
   .event-form label{align-content:start}
+  .event-modal .event-form label{grid-template-rows:16px auto;gap:7px}
+  .event-modal .event-form label>.field-label{height:16px;min-height:16px}
   .event-form select{padding:0 38px 0 14px;line-height:normal;text-align:left;text-align-last:left}
 }
