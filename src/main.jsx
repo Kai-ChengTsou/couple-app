@@ -28,7 +28,11 @@ function App({ user = null, duet = null }) {
   const [theme, setTheme] = useState(duet?.profile?.theme || 'blush');
   const [active, setActive] = useState('home');
   const [toast, setToast] = useState('');
-  const today = useMemo(() => new Intl.DateTimeFormat('zh-TW', { weekday: 'long', month: 'long', day: 'numeric' }).format(new Date()), []);
+  const [now,setNow]=useState(()=>new Date());
+  useEffect(()=>{const timer=window.setInterval(()=>setNow(new Date()),60000);return()=>window.clearInterval(timer);},[]);
+  const today = useMemo(() => new Intl.DateTimeFormat('zh-TW', { weekday: 'long', month: 'long', day: 'numeric' }).format(now), [now]);
+  const hour=now.getHours();
+  const greeting=hour>=5&&hour<11?'早安':hour>=11&&hour<14?'午安':hour>=14&&hour<18?'下午好':hour>=18&&hour<23?'晚安':'夜深了';
   const displayName = duet?.profile?.display_name || '你';
   const firstName = displayName.split(' ')[0];
   const memberNames = Object.fromEntries((duet?.members || []).map(member => [member.user_id, member.profile?.display_name || '成員']));
@@ -89,7 +93,7 @@ function App({ user = null, duet = null }) {
         : active === 'settings' ? <SettingsPage members={duet?.members || []} couple={duet?.couple} user={user} theme={theme} onRefresh={duet?.refresh || (()=>{})} onNotify={notify} onTheme={changeTheme}/>
         : <>
         <header className="topbar">
-          <div><p className="eyebrow">{today}</p><h1>晚安，{firstName}。</h1></div>
+          <div><p className="eyebrow">{today}</p><h1>{greeting}，{firstName}。</h1></div>
         </header>
 
         <section className="hero-card">
