@@ -39,7 +39,7 @@ function App({ user = null, duet = null }) {
   const displayName = duet?.profile?.display_name || '你';
   const firstName = displayName.split(' ')[0];
   const memberNames = Object.fromEntries((duet?.members || []).map(member => [member.user_id, member.profile?.display_name || '成員']));
-  const memberTones = Object.fromEntries((duet?.members || []).map((member,index) => [member.user_id,index%2===0?'avatar-a':'avatar-b']));
+  const memberTones = Object.fromEntries((duet?.members || []).map((member,index) => [member.user_id,index%2===0?'avatar-b':'avatar-a']));
   const liveSchedule = (duet?.events || []).filter(event => new Date(event.starts_at) >= new Date()).slice(0, 3).map(event => {
     const date = new Date(event.starts_at);
     const creatorName=memberNames[event.created_by] || (event.created_by===user?.id ? displayName : '另一半');
