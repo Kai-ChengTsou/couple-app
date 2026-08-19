@@ -64,7 +64,7 @@ export default function SettingsPage({members,couple,user,onRefresh,onNotify,onT
         <form className="settings-card" onSubmit={save}>
         <span className="settings-icon"><Heart/></span><h2>共同資料</h2>
         <label>空間名稱<input value={space} onChange={e=>setSpace(e.target.value)} required/></label>
-        <label>紀念日<PickerField type="date" value={anniversary} onChange={e=>setAnniversary(e.target.value)} ariaLabel="紀念日"/></label>
+        <label>在一起的日子<PickerField type="date" value={anniversary} onChange={e=>setAnniversary(e.target.value)} ariaLabel="在一起的日子"/></label>
         <button className="auth-submit" disabled={saving}>{saving?<LoaderCircle className="spin"/>:<><Check size={17}/>儲存變更</>}</button>
       </form>
       </div>
