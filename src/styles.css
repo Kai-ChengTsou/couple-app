@@ -132,9 +132,10 @@ img{-webkit-user-drag:none}
 
 /* Event ownership and category language */
 .scope-picker{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;border:0;padding:0;margin:0}.scope-picker legend{margin-bottom:7px;font-size:11px;font-weight:700}.scope-picker button{height:44px;border:1px solid var(--line);border-radius:11px;background:transparent;display:flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;font-size:11px}.scope-picker button.selected{border-color:var(--primary);background:var(--soft);color:var(--primary-deep);font-weight:700}
-.category-date{--category-color:#b54f6b;--category-soft:#f7e6e7}.category-personal{--category-color:#5279a8;--category-soft:#e4edf7}.category-work{--category-color:#558066;--category-soft:#e2eee6}.category-family{--category-color:#bb6c55;--category-soft:#f7e5de}.category-anniversary{--category-color:#875b91;--category-soft:#eee4f2}
+.category-date{--category-color:#b54f6b;--category-soft:#f7e6e7}.category-personal{--category-color:#5279a8;--category-soft:#e4edf7}.category-work{--category-color:#558066;--category-soft:#e2eee6}.category-family{--category-color:#bb6c55;--category-soft:#f7e5de}.category-friends{--category-color:#b27a2d;--category-soft:#f7edd9}.category-anniversary{--category-color:#875b91;--category-soft:#eee4f2}
 .event-icon[class*="category-"],.event-chip[class*="category-"],.category-badge[class*="category-"]{background:var(--category-soft);color:var(--category-color)}
 .category-text[class*="category-"]{color:var(--category-color)}
+.agenda-line.friends{background:#b27a2d}
 .event-tags{display:flex;align-items:center;gap:5px;margin-top:6px}.event-tags b{padding:3px 6px;border-radius:6px;font-size:8px;line-height:1.2}.scope-badge{background:var(--canvas);color:var(--muted)}
 .event-copy>small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.event-copy>small b{font:inherit;font-weight:800}
 @media(max-width:760px){.scope-picker button{height:46px;font-size:11px}.event-tags{margin-top:5px}.event-tags b{font-size:9px}.event-chip[class*="category-"]{background:var(--category-color)}}

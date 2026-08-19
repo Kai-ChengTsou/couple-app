@@ -6,7 +6,7 @@ import {
 import { supabase } from '../lib/supabase';
 import PickerField from './PickerField';
 
-const categories = [['date','約會'],['personal','個人'],['work','工作'],['family','家庭'],['anniversary','紀念日']];
+const categories = [['date','約會'],['personal','個人'],['work','工作'],['family','家庭'],['friends','朋友'],['anniversary','紀念日']];
 const categoryLabels = Object.fromEntries(categories);
 const visibilityLabels = { shared:'兩人都看得到', private:'只有我看得到', surprise:'驚喜' };
 const scopeLabels = { shared:'共同安排' };

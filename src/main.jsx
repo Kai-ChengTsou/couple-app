@@ -21,7 +21,7 @@ const nav = [
 ];
 const wishCategoryLabels = {'date idea':'約會',place:'地點',trip:'旅行',gift:'禮物',food:'美食',movie:'電影','shared purchase':'共同購買'};
 const wishStatusLabels = {idea:'想法',planned:'已計畫',completed:'已完成'};
-const eventCategoryLabels = {date:'約會',personal:'個人',work:'工作',family:'家庭',anniversary:'紀念日'};
+const eventCategoryLabels = {date:'約會',personal:'個人',work:'工作',family:'家庭',friends:'朋友',anniversary:'紀念日'};
 const eventScopeLabels = {shared:'共同安排'};
 
 function App({ user = null, duet = null }) {
