@@ -46,7 +46,6 @@ export default function QuickStart() {
           {error&&<p className="auth-message" role="alert">{error}</p>}
           <button className="auth-submit" disabled={loading}>{loading?<LoaderCircle className="spin" size={19}/>:<>{mode==='create'?'建立我們的空間':'加入共同空間'}<ArrowRight size={18}/></>}</button>
         </form>
-        <p className="device-note">這台裝置會記住你，不需要電子郵件或密碼。</p>
       </section>
     </main>
   </div>;
