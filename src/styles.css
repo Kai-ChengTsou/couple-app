@@ -146,3 +146,11 @@ img{-webkit-user-drag:none}
   .native-picker>span{height:48px;line-height:48px}
   .event-form select{height:48px;line-height:48px;padding-top:0;padding-bottom:0}
 }
+.field-label{display:flex;align-items:center;gap:6px;min-height:14px;line-height:1.2}
+.field-label small{margin:0}
+@media(max-width:760px){
+  .page-title-row .add-button,.add-button{display:flex!important;align-items:center!important;justify-content:center!important;padding:0!important;line-height:0!important}
+  .add-button svg{display:block!important;flex:0 0 auto;margin:0!important;transform:translate(0,0)!important}
+  .event-form label{align-content:start}
+  .event-form select{padding:0 38px 0 14px;line-height:normal;text-align:left;text-align-last:left}
+}

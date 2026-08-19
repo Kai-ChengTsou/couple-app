@@ -136,11 +136,11 @@ export default function CalendarPage({ events, members, couple, user, onRefresh,
           <label className="full">行程名稱<input value={form.title} onChange={e=>setForm({...form,title:e.target.value})} required maxLength="120" placeholder="晚餐、電影夜、約會…"/></label>
           <label>日期<PickerField type="date" value={form.date} onChange={e=>setForm({...form,date:e.target.value})} required ariaLabel="日期"/></label>
           <label>開始時間<PickerField type="time" value={form.time} onChange={e=>setForm({...form,time:e.target.value})} required ariaLabel="開始時間"/></label>
-          <label>結束時間 <small>選填</small><PickerField type="time" value={form.endTime} onChange={e=>setForm({...form,endTime:e.target.value})} ariaLabel="結束時間"/></label>
+          <label><span className="field-label">結束時間 <small>選填</small></span><PickerField type="time" value={form.endTime} onChange={e=>setForm({...form,endTime:e.target.value})} ariaLabel="結束時間"/></label>
           <label>類別<select value={form.category} onChange={e=>setForm({...form,category:e.target.value})}>{categories.map(([value,label])=><option key={value} value={value}>{label}</option>)}</select></label>
-          <label className="full">地點 <small>選填</small><input value={form.location} onChange={e=>setForm({...form,location:e.target.value})} maxLength="180" placeholder="新增地點"/></label>
+          <label className="full"><span className="field-label">地點 <small>選填</small></span><input value={form.location} onChange={e=>setForm({...form,location:e.target.value})} maxLength="180" placeholder="新增地點"/></label>
           <fieldset className="full visibility-picker"><legend>誰可以看到？</legend>{[['shared','兩人共享',Users],['private','只有我',Eye],['surprise','驚喜',Sparkles]].map(([value,label,Icon])=><button type="button" key={value} className={form.visibility===value?'selected':''} onClick={()=>setForm({...form,visibility:value})}><Icon size={16}/><span>{label}</span></button>)}</fieldset>
-          <label className="full">備註 <small>選填</small><textarea value={form.notes} onChange={e=>setForm({...form,notes:e.target.value})} rows="3" maxLength="1000" placeholder="有什麼想記住的嗎？"/></label>
+          <label className="full"><span className="field-label">備註 <small>選填</small></span><textarea value={form.notes} onChange={e=>setForm({...form,notes:e.target.value})} rows="3" maxLength="1000" placeholder="有什麼想記住的嗎？"/></label>
           {error&&<p className="auth-message full" role="alert">{error}</p>}
           <div className="event-form-actions full">{editing&&<button type="button" className="delete-button" onClick={remove} disabled={saving}><Trash2 size={17}/>刪除</button>}<span/><button type="button" className="cancel-button" onClick={close}>取消</button><button className="auth-submit save-event" disabled={saving}>{saving?<LoaderCircle className="spin" size={18}/>:<><Check size={17}/>儲存行程</>}</button></div>
         </form>
