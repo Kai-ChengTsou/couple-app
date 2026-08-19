@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 
 export function useDuetData(user) {
-  const [state, setState] = useState({ loading: true, profile: null, couple: null, members: [], events: [], wishes: [], tasks: [], memories: [] });
+  const [state, setState] = useState({ loading: true, profile: null, couple: null, members: [], events: [], wishes: [], tasks: [], memories: [], countdowns: [] });
 
   const refresh = useCallback(async () => {
     if (!user || !supabase) return;
@@ -11,13 +11,14 @@ export function useDuetData(user) {
       supabase.from('couple_members').select('couple_id, couples(*)').eq('user_id', user.id).maybeSingle(),
     ]);
     const couple = memberResult.data?.couples ?? null;
-    if (!couple) return setState({ loading: false, profile: profileResult.data, couple: null, members: [], events: [], wishes: [], tasks: [], memories: [] });
-    const [eventResult, wishResult, taskResult, memoryResult, membersResult] = await Promise.all([
+    if (!couple) return setState({ loading: false, profile: profileResult.data, couple: null, members: [], events: [], wishes: [], tasks: [], memories: [], countdowns: [] });
+    const [eventResult, wishResult, taskResult, memoryResult, membersResult, countdownResult] = await Promise.all([
       supabase.from('events').select('*').eq('couple_id', couple.id).order('starts_at').limit(200),
       supabase.from('wishlist_items').select('*').eq('couple_id', couple.id).order('created_at', { ascending: false }).limit(200),
       supabase.from('tasks').select('*').eq('couple_id', couple.id).order('created_at', { ascending: false }).limit(200),
       supabase.from('memories').select('*').eq('couple_id', couple.id).order('happened_on', { ascending: false }).limit(200),
       supabase.from('couple_members').select('user_id, joined_at').eq('couple_id', couple.id).order('joined_at'),
+      supabase.from('countdowns').select('*').eq('couple_id', couple.id).order('target_date'),
     ]);
     const memberRows = membersResult.data ?? [];
     const profileIds = memberRows.map(member => member.user_id);
@@ -33,7 +34,7 @@ export function useDuetData(user) {
       : { data: [] };
     const signedByPath = Object.fromEntries((signedResult.data ?? []).filter(photo => photo.signedUrl).map(photo => [photo.path, photo.signedUrl]));
     const memories = rawMemories.map(memory => ({ ...memory, image_url: memory.image_path ? signedByPath[memory.image_path] ?? null : memory.image_url }));
-    setState({ loading: false, profile: profileResult.data, couple, members, events: eventResult.data ?? [], wishes: wishResult.data ?? [], tasks: taskResult.data ?? [], memories });
+    setState({ loading: false, profile: profileResult.data, couple, members, events: eventResult.data ?? [], wishes: wishResult.data ?? [], tasks: taskResult.data ?? [], memories, countdowns: countdownResult.data ?? [] });
   }, [user]);
 
   useEffect(() => { refresh(); }, [refresh]);
@@ -44,6 +45,7 @@ export function useDuetData(user) {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'wishlist_items', filter: `couple_id=eq.${state.couple.id}` }, refresh)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks', filter: `couple_id=eq.${state.couple.id}` }, refresh)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'memories', filter: `couple_id=eq.${state.couple.id}` }, refresh)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'countdowns', filter: `couple_id=eq.${state.couple.id}` }, refresh)
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [state.couple?.id, refresh]);

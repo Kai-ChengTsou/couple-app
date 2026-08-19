@@ -11,6 +11,7 @@ import CalendarPage from './components/CalendarPage';
 import WishlistPage from './components/WishlistPage';
 import OurSpacePage from './components/OurSpacePage';
 import SettingsPage from './components/SettingsPage';
+import CountdownPanel from './components/CountdownPanel';
 import { isSupabaseConfigured, supabase } from './lib/supabase';
 import { useDuetData } from './hooks/useDuetData';
 
@@ -128,6 +129,7 @@ function App({ user = null, duet = null }) {
           </div>
 
           <aside className="right-stack">
+            <CountdownPanel items={duet?.countdowns||[]} couple={duet?.couple} user={user} onRefresh={duet?.refresh||(()=>{})} onNotify={notify}/>
             <div className="panel wish-panel">
               <div className="panel-heading"><div><p className="eyebrow">總有一天</p><h3>我們的願望</h3></div><span className="count">{duet?.wishes?.length || 0} 個想法</span></div>
               <div className="wish-list">
