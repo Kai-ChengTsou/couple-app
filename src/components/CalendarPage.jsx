@@ -4,8 +4,10 @@ import {
   EyeOff, Heart, LoaderCircle, MapPin, Pencil, Plus, Sparkles, Trash2, UserRound, Users, X
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import PickerField from './PickerField';
 
-const categories = ['date', 'personal', 'work', 'family', 'anniversary'];
+const categories = [['date','約會'],['personal','個人'],['work','工作'],['family','家庭'],['anniversary','紀念日']];
+const visibilityLabels = { shared:'兩人共享', private:'只有我', surprise:'驚喜' };
 const emptyForm = { title:'', date:'', time:'19:00', endTime:'', location:'', notes:'', category:'date', visibility:'shared' };
 const lunarDateFormatter = new Intl.DateTimeFormat('zh-TW-u-ca-chinese',{month:'numeric',day:'numeric'});
 const annualHolidays = {
@@ -121,7 +123,7 @@ export default function CalendarPage({ events, members, couple, user, onRefresh,
         {(selectedEvents.length||selectedHolidays.length) ? <div className="agenda-list">{selectedHolidays.map(item=><article className="agenda-event holiday-event" key={item.id}>
           <i className="agenda-line holiday"/><span><strong>{item.title}</strong><small>{item.description}</small><em><Heart size={12}/> 特別節日</em></span><Heart size={15}/>
         </article>)}{selectedEvents.map(item=><button className="agenda-event" key={item.id} onClick={()=>openEdit(item)}>
-          <i className={`agenda-line ${item.category}`}/><span><strong>{item.title}</strong><small><Clock3 size={13}/>{new Date(item.starts_at).toLocaleTimeString('en',{hour:'numeric',minute:'2-digit'})}{item.location&&<><MapPin size={13}/>{item.location}</>}</small><small className="event-creator"><UserRound size={12}/>由 {creatorName(item)} 建立</small><em>{item.visibility==='shared'?<Users size={12}/>:item.visibility==='surprise'?<Sparkles size={12}/>:<EyeOff size={12}/>} {item.visibility}</em></span><Pencil size={15}/>
+          <i className={`agenda-line ${item.category}`}/><span><strong>{item.title}</strong><small><Clock3 size={13}/>{new Date(item.starts_at).toLocaleTimeString('zh-TW',{hour:'numeric',minute:'2-digit'})}{item.location&&<><MapPin size={13}/>{item.location}</>}</small><small className="event-creator"><UserRound size={12}/>由 {creatorName(item)} 建立</small><em>{item.visibility==='shared'?<Users size={12}/>:item.visibility==='surprise'?<Sparkles size={12}/>:<EyeOff size={12}/>} {visibilityLabels[item.visibility]||item.visibility}</em></span><Pencil size={15}/>
         </button>)}</div>:<div className="agenda-empty"><span><CalendarDays size={25}/></span><strong>今天還沒有安排</strong><p>新增一個計畫，或留白給意想不到的美好。</p><button onClick={()=>openNew(selectedDate)}><Plus size={16}/>新增計畫</button></div>}
       </aside>
     </div>
@@ -132,10 +134,10 @@ export default function CalendarPage({ events, members, couple, user, onRefresh,
         <p className="eyebrow">{editing?'調整一下':'一起安排'}</p><h2 id="event-form-title">{editing?'編輯行程':'新增到行事曆'}</h2>
         <form className="event-form" onSubmit={save}>
           <label className="full">行程名稱<input value={form.title} onChange={e=>setForm({...form,title:e.target.value})} required maxLength="120" placeholder="晚餐、電影夜、約會…"/></label>
-          <label>日期<input type="date" value={form.date} onChange={e=>setForm({...form,date:e.target.value})} required/></label>
-          <label>開始時間<input type="time" value={form.time} onChange={e=>setForm({...form,time:e.target.value})} required/></label>
-          <label>結束時間 <small>選填</small><input type="time" value={form.endTime} onChange={e=>setForm({...form,endTime:e.target.value})}/></label>
-          <label>類別<select value={form.category} onChange={e=>setForm({...form,category:e.target.value})}>{categories.map(value=><option key={value}>{value}</option>)}</select></label>
+          <label>日期<PickerField type="date" value={form.date} onChange={e=>setForm({...form,date:e.target.value})} required ariaLabel="日期"/></label>
+          <label>開始時間<PickerField type="time" value={form.time} onChange={e=>setForm({...form,time:e.target.value})} required ariaLabel="開始時間"/></label>
+          <label>結束時間 <small>選填</small><PickerField type="time" value={form.endTime} onChange={e=>setForm({...form,endTime:e.target.value})} ariaLabel="結束時間"/></label>
+          <label>類別<select value={form.category} onChange={e=>setForm({...form,category:e.target.value})}>{categories.map(([value,label])=><option key={value} value={value}>{label}</option>)}</select></label>
           <label className="full">地點 <small>選填</small><input value={form.location} onChange={e=>setForm({...form,location:e.target.value})} maxLength="180" placeholder="新增地點"/></label>
           <fieldset className="full visibility-picker"><legend>誰可以看到？</legend>{[['shared','兩人共享',Users],['private','只有我',Eye],['surprise','驚喜',Sparkles]].map(([value,label,Icon])=><button type="button" key={value} className={form.visibility===value?'selected':''} onClick={()=>setForm({...form,visibility:value})}><Icon size={16}/><span>{label}</span></button>)}</fieldset>
           <label className="full">備註 <small>選填</small><textarea value={form.notes} onChange={e=>setForm({...form,notes:e.target.value})} rows="3" maxLength="1000" placeholder="有什麼想記住的嗎？"/></label>

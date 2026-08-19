@@ -18,6 +18,8 @@ const nav = [
   ['home', '首頁', Home], ['calendar', '行事曆', CalendarDays],
   ['wishlist', '願望清單', Star], ['us', '我們', Heart]
 ];
+const wishCategoryLabels = {'date idea':'約會',place:'地點',trip:'旅行',gift:'禮物',food:'美食',movie:'電影','shared purchase':'共同購買'};
+const wishStatusLabels = {idea:'想法',planned:'已計畫',completed:'已完成'};
 
 function App({ user = null, duet = null }) {
   const [theme, setTheme] = useState(duet?.profile?.theme || 'blush');
@@ -32,7 +34,7 @@ function App({ user = null, duet = null }) {
     const creatorName=memberNames[event.created_by] || (event.created_by===user?.id ? displayName : '另一半');
     return { id:event.id, day: String(date.getDate()).padStart(2, '0'), month: date.toLocaleString('zh-TW', {month:'short'}), title:event.title, time:date.toLocaleTimeString('zh-TW',{hour:'numeric',minute:'2-digit'}), creatorName, icon:CalendarDays };
   });
-  const liveWishes = (duet?.wishes || []).slice(0, 3).map((wish, index) => ({ id:wish.id, title:wish.title, meta:`${wish.category} · ${wish.status}`, tone:['forest','coral','sky'][index%3], icon:Star }));
+  const liveWishes = (duet?.wishes || []).slice(0, 3).map((wish, index) => ({ id:wish.id, title:wish.title, meta:`${wishCategoryLabels[wish.category]||wish.category} · ${wishStatusLabels[wish.status]||wish.status}`, tone:['forest','coral','sky'][index%3], icon:Star }));
   const coupleName = duet?.couple?.name || '我們的空間';
   const inviteCode = duet?.couple?.invite_code;
 
