@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Camera, Check, Circle, Clock3, Heart, Image, LoaderCircle, Pencil, Plus, Sparkles, Trash2, Upload, X } from 'lucide-react';
+import { Camera, Check, ChevronLeft, ChevronRight, Circle, Clock3, Heart, Image, LoaderCircle, Maximize2, Pencil, Plus, Sparkles, Trash2, Upload, X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { compressMemoryPhoto } from '../lib/images';
 import PickerField from './PickerField';
@@ -14,6 +14,7 @@ export default function OurSpacePage({ memories, tasks, couple, user, onRefresh,
   const [removePhoto,setRemovePhoto]=useState(false);
   const [saving,setSaving]=useState(false);
   const [error,setError]=useState('');
+  const [viewerIndex,setViewerIndex]=useState(null);
 
   useEffect(() => {
     if (!photoFile) return setPhotoPreview('');
@@ -21,6 +22,25 @@ export default function OurSpacePage({ memories, tasks, couple, user, onRefresh,
     setPhotoPreview(url);
     return () => URL.revokeObjectURL(url);
   },[photoFile]);
+
+  const photoMemories=memories.filter(memory=>memory.image_url);
+  const viewedMemory=viewerIndex===null?null:photoMemories[viewerIndex];
+  const openTasks=tasks.filter(task=>!task.completed_at).length;
+  const completedTasks=tasks.length-openTasks;
+  const taskProgress=tasks.length?Math.round(completedTasks/tasks.length*100):0;
+
+  useEffect(()=>{
+    if(viewerIndex===null)return undefined;
+    const previousOverflow=document.body.style.overflow;
+    const onKeyDown=event=>{
+      if(event.key==='Escape')setViewerIndex(null);
+      if(event.key==='ArrowLeft')setViewerIndex(index=>(index-1+photoMemories.length)%photoMemories.length);
+      if(event.key==='ArrowRight')setViewerIndex(index=>(index+1)%photoMemories.length);
+    };
+    document.body.style.overflow='hidden';
+    window.addEventListener('keydown',onKeyDown);
+    return ()=>{document.body.style.overflow=previousOverflow;window.removeEventListener('keydown',onKeyDown);};
+  },[viewerIndex,photoMemories.length]);
 
   function open(type,item=null){
     setKind(type);setEditing(item);setError('');setPhotoFile(null);setRemovePhoto(false);
@@ -90,8 +110,18 @@ export default function OurSpacePage({ memories, tasks, couple, user, onRefresh,
   const currentPhoto=photoPreview||(!removePhoto?form.image_url:'');
   return <section className="feature-page our-page">
     <header className="page-title-row"><div><p className="eyebrow">一起創造</p><h1>我們的小世界</h1><p>收藏喜歡的時刻，也讓每天的合作更輕鬆。</p></div><button className="add-button" onClick={()=>open(tab==='memories'?'memory':'task')}><Plus size={19}/>{tab==='memories'?'新增回憶':'新增任務'}</button></header>
-    <div className="section-tabs"><button className={tab==='memories'?'selected':''} onClick={()=>setTab('memories')}><Heart size={17}/>回憶 <span>{memories.length}</span></button><button className={tab==='tasks'?'selected':''} onClick={()=>setTab('tasks')}><Check size={17}/>共同任務 <span>{tasks.filter(task=>!task.completed_at).length}</span></button></div>
-    {tab==='memories'?(memories.length?<div className="memory-timeline">{memories.map((memory,index)=><article className="memory-card" key={memory.id}><button className="wish-edit" aria-label={`編輯 ${memory.title}`} onClick={()=>open('memory',memory)}><Pencil size={16}/></button>{memory.image_url?<img src={memory.image_url} alt={memory.title} loading="lazy"/>:<span className={`memory-placeholder mp-${index%3}`}><Image size={29}/></span>}<div><small>{new Date(`${memory.happened_on}T12:00`).toLocaleDateString('zh-TW',{year:'numeric',month:'long',day:'numeric'})}</small><h2>{memory.title}</h2>{memory.note&&<p>{memory.note}</p>}</div></article>)}</div>:<Empty icon={<Sparkles size={28}/>} title="你們的故事從這裡開始" text="收藏一張照片、一個日期，或讓你微笑的小時刻。" action="新增第一個回憶" onClick={()=>open('memory')}/>):(tasks.length?<div className="task-board">{tasks.map(task=><article className={task.completed_at?'task-row done':'task-row'} key={task.id}><button aria-label={task.completed_at?'標記為未完成':'標記為完成'} onClick={()=>toggleTask(task)}>{task.completed_at?<Check size={17}/>:<Circle size={17}/>}</button><div><strong>{task.title}</strong>{task.due_at&&<small><Clock3 size={12}/>{new Date(task.due_at).toLocaleString('zh-TW',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})}</small>}</div><button className="task-delete" aria-label={`刪除 ${task.title}`} onClick={()=>removeTask(task)}><Trash2 size={16}/></button></article>)}</div>:<Empty icon={<Check size={28}/>} title="目前沒有共同任務" text="新增採買、家事，或任何一起做會更輕鬆的事情。" action="新增第一個任務" onClick={()=>open('task')}/>) }
+    <section className="our-overview">
+      <article><span className="our-metric-icon"><Heart size={21}/></span><div><small>共同收藏</small><strong>{memories.length} 個回憶</strong><p>{memories.length?'把值得重看的時刻，慢慢收進這裡。':'第一張照片，會是故事的開始。'}</p></div><Sparkles className="our-decoration" size={32}/></article>
+      <article><span className="our-metric-icon task"><Check size={21}/></span><div><small>一起完成</small><strong>{completedTasks} / {tasks.length} 個任務</strong><span className="our-task-progress"><i style={{width:`${taskProgress}%`}}/></span></div></article>
+    </section>
+    <div className="section-tabs"><button className={tab==='memories'?'selected':''} onClick={()=>setTab('memories')}><Heart size={17}/>回憶 <span>{memories.length}</span></button><button className={tab==='tasks'?'selected':''} onClick={()=>setTab('tasks')}><Check size={17}/>共同任務 <span>{openTasks}</span></button></div>
+    {tab==='memories'?(memories.length?<div className="memory-timeline">{memories.map((memory,index)=><article className="memory-card" key={memory.id}><button className="wish-edit" aria-label={`編輯 ${memory.title}`} onClick={()=>open('memory',memory)}><Pencil size={16}/></button>{memory.image_url?<button className="memory-photo-button" onClick={()=>setViewerIndex(photoMemories.findIndex(photo=>photo.id===memory.id))} aria-label={`查看 ${memory.title} 的照片`}><img src={memory.image_url} alt={memory.title} loading="lazy"/><span><Maximize2 size={14}/>查看照片</span></button>:<span className={`memory-placeholder mp-${index%3}`}><Image size={29}/><small>NO PHOTO</small></span>}<div><small>{new Date(`${memory.happened_on}T12:00`).toLocaleDateString('zh-TW',{year:'numeric',month:'long',day:'numeric'})}</small><h2>{memory.title}</h2>{memory.note&&<p>{memory.note}</p>}<span className="memory-keepsake"><Heart size={11}/>共同珍藏</span></div></article>)}</div>:<Empty icon={<Sparkles size={28}/>} title="你們的故事從這裡開始" text="收藏一張照片、一個日期，或讓你微笑的小時刻。" action="新增第一個回憶" onClick={()=>open('memory')}/>):(tasks.length?<div className="task-board">{tasks.map((task,index)=><article className={task.completed_at?'task-row done':'task-row'} key={task.id}><span className="task-number">{String(index+1).padStart(2,'0')}</span><button aria-label={task.completed_at?'標記為未完成':'標記為完成'} onClick={()=>toggleTask(task)}>{task.completed_at?<Check size={17}/>:<Circle size={17}/>}</button><div><strong>{task.title}</strong>{task.due_at&&<small><Clock3 size={12}/>{new Date(task.due_at).toLocaleString('zh-TW',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})}</small>}</div><button className="task-delete" aria-label={`刪除 ${task.title}`} onClick={()=>removeTask(task)}><Trash2 size={16}/></button></article>)}</div>:<Empty icon={<Check size={28}/>} title="目前沒有共同任務" text="新增採買、家事，或任何一起做會更輕鬆的事情。" action="新增第一個任務" onClick={()=>open('task')}/>) }
+
+    {viewedMemory&&<div className="memory-lightbox" role="dialog" aria-modal="true" aria-label={`${viewedMemory.title} 照片`} onMouseDown={event=>event.target===event.currentTarget&&setViewerIndex(null)}>
+      <button className="memory-lightbox-close" onClick={()=>setViewerIndex(null)} aria-label="關閉照片"><X size={22}/></button>
+      {photoMemories.length>1&&<><button className="memory-lightbox-nav prev" onClick={()=>setViewerIndex(index=>(index-1+photoMemories.length)%photoMemories.length)} aria-label="上一張照片"><ChevronLeft size={24}/></button><button className="memory-lightbox-nav next" onClick={()=>setViewerIndex(index=>(index+1)%photoMemories.length)} aria-label="下一張照片"><ChevronRight size={24}/></button></>}
+      <figure><img src={viewedMemory.image_url} alt={viewedMemory.title}/><figcaption><small>{new Date(`${viewedMemory.happened_on}T12:00`).toLocaleDateString('zh-TW',{year:'numeric',month:'long',day:'numeric'})} · {viewerIndex+1} / {photoMemories.length}</small><h2>{viewedMemory.title}</h2>{viewedMemory.note&&<p>{viewedMemory.note}</p>}</figcaption></figure>
+    </div>}
 
     {kind&&<div className="modal-backdrop" onMouseDown={event=>event.target===event.currentTarget&&!saving&&close()}><section className="modal memory-modal" role="dialog" aria-modal="true"><button className="icon-button close" aria-label="關閉" onClick={close} disabled={saving}><X size={20}/></button><p className="eyebrow">{kind==='memory'?'值得珍藏的時刻':'一起分工'}</p><h2>{kind==='memory'?(editing?'編輯回憶':'新增回憶'):'新增共同任務'}</h2><form className="event-form" onSubmit={save}>
       <label className="full">名稱<input required maxLength="160" value={form.title||''} onChange={event=>setForm({...form,title:event.target.value})}/></label>
