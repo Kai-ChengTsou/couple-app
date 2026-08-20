@@ -26,14 +26,15 @@ const eventScopeLabels = {shared:'共同安排'};
 
 function App({ user = null, duet = null }) {
   const [theme, setTheme] = useState(duet?.profile?.theme || 'blush');
-  const [active, setActive] = useState('home');
-  const [calendarTarget,setCalendarTarget]=useState(null);
+  const initialParams=new URLSearchParams(window.location.search);
+  const [active, setActive] = useState(initialParams.get('open')==='calendar'?'calendar':'home');
+  const [calendarTarget,setCalendarTarget]=useState(initialParams.get('date'));
   const [toast, setToast] = useState('');
   const [pullDistance,setPullDistance]=useState(0);
   const [refreshing,setRefreshing]=useState(false);
   const pullStart=useRef(null),pullValue=useRef(0);
   const [now,setNow]=useState(()=>new Date());
-  useEffect(()=>{const timer=window.setInterval(()=>setNow(new Date()),60000);return()=>window.clearInterval(timer);},[]);
+  useEffect(()=>{const timer=window.setInterval(()=>setNow(new Date()),60000);if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js').catch(()=>{});return()=>window.clearInterval(timer);},[]);
   const today = useMemo(() => new Intl.DateTimeFormat('zh-TW', { weekday: 'long', month: 'long', day: 'numeric' }).format(now), [now]);
   const hour=now.getHours();
   const greeting=hour>=5&&hour<11?'早安':hour>=11&&hour<14?'午安':hour>=14&&hour<18?'下午好':hour>=18&&hour<23?'晚安':'夜深了';

@@ -10,7 +10,7 @@ const categories = [['date','約會'],['personal','個人'],['work','工作'],['
 const categoryLabels = Object.fromEntries(categories);
 const visibilityLabels = { shared:'兩人都看得到', private:'只有我看得到', surprise:'驚喜' };
 const scopeLabels = { shared:'共同安排' };
-const emptyForm = { title:'', date:'', time:'19:00', endTime:'', location:'', notes:'', category:'date', eventScope:'shared', visibility:'shared' };
+const emptyForm = { title:'', date:'', time:'19:00', endTime:'', location:'', notes:'', category:'date', eventScope:'shared', visibility:'shared', reminderMinutes:'' };
 const lunarDateFormatter = new Intl.DateTimeFormat('zh-TW-u-ca-chinese',{month:'numeric',day:'numeric'});
 const annualHolidays = {
   '01-01': ['新年第一天','一起迎接新的一年。'],
@@ -39,7 +39,7 @@ function toForm(event) {
   const starts = new Date(event.starts_at);
   const ends = event.ends_at ? new Date(event.ends_at) : null;
   const localDate = new Date(starts.getTime() - starts.getTimezoneOffset()*60000).toISOString();
-  return { title:event.title, date:localDate.slice(0,10), time:localDate.slice(11,16), endTime:ends ? new Date(ends.getTime()-ends.getTimezoneOffset()*60000).toISOString().slice(11,16) : '', location:event.location||'', notes:event.notes||'', category:event.category||'date', eventScope:event.event_scope||'shared', visibility:event.visibility||'shared' };
+  return { title:event.title, date:localDate.slice(0,10), time:localDate.slice(11,16), endTime:ends ? new Date(ends.getTime()-ends.getTimezoneOffset()*60000).toISOString().slice(11,16) : '', location:event.location||'', notes:event.notes||'', category:event.category||'date', eventScope:event.event_scope||'shared', visibility:event.visibility||'shared', reminderMinutes:event.reminder_minutes?String(event.reminder_minutes):'' };
 }
 
 export default function CalendarPage({ initialDate, events, members, couple, user, onRefresh, onNotify }) {
@@ -79,7 +79,7 @@ export default function CalendarPage({ initialDate, events, members, couple, use
     const startsAt=new Date(`${form.date}T${form.time}`).toISOString();
     const endsAt=form.endTime ? new Date(`${form.date}T${form.endTime}`).toISOString() : null;
     if(endsAt && new Date(endsAt)<=new Date(startsAt)){setSaving(false);return setError('結束時間必須晚於開始時間。');}
-    const payload={title:form.title.trim(),starts_at:startsAt,ends_at:endsAt,location:form.location.trim()||null,notes:form.notes.trim()||null,category:form.category,event_scope:form.eventScope,visibility:form.visibility};
+    const payload={title:form.title.trim(),starts_at:startsAt,ends_at:endsAt,location:form.location.trim()||null,notes:form.notes.trim()||null,category:form.category,event_scope:form.eventScope,visibility:form.visibility,reminder_minutes:form.reminderMinutes?Number(form.reminderMinutes):null,reminder_sent_at:null};
     if(!supabase || !user || !couple){setSaving(false);return setError('目前無法連接資料庫。');}
     const result=editing
       ? await supabase.from('events').update(payload).eq('id',editing.id)
@@ -142,6 +142,7 @@ export default function CalendarPage({ initialDate, events, members, couple, use
           <label>開始時間<PickerField type="time" value={form.time} onChange={e=>setForm({...form,time:e.target.value})} required ariaLabel="開始時間"/></label>
           <label><span className="field-label">結束時間 <small>選填</small></span><PickerField type="time" value={form.endTime} onChange={e=>setForm({...form,endTime:e.target.value})} ariaLabel="結束時間"/></label>
           <label>類別<select value={form.category} onChange={e=>setForm({...form,category:e.target.value})}>{categories.map(([value,label])=><option key={value} value={value}>{label}</option>)}</select></label>
+          <label>提醒<select value={form.reminderMinutes} onChange={e=>setForm({...form,reminderMinutes:e.target.value})}><option value="">不提醒</option><option value="30">30 分鐘前</option><option value="60">1 小時前</option><option value="1440">1 天前</option></select></label>
           <fieldset className="full scope-picker"><legend>這是誰的行程？</legend>{[['shared','共同安排',Users],['personal',editing&&editing.created_by!==user?.id?`${creatorName(editing)} 的行程`:'我的行程',UserRound]].map(([value,label,Icon])=><button type="button" key={value} className={form.eventScope===value?'selected':''} onClick={()=>setForm({...form,eventScope:value})}><Icon size={17}/><span>{label}</span></button>)}</fieldset>
           <label className="full"><span className="field-label">地點 <small>選填</small></span><input value={form.location} onChange={e=>setForm({...form,location:e.target.value})} maxLength="180" placeholder="新增地點"/></label>
           <fieldset className="full visibility-picker"><legend>對方能看到嗎？</legend>{[['shared','兩人都看得到',Eye],['private','只有我',EyeOff],['surprise','驚喜',Sparkles]].map(([value,label,Icon])=><button type="button" key={value} className={form.visibility===value?'selected':''} onClick={()=>setForm({...form,visibility:value})}><Icon size={16}/><span>{label}</span></button>)}</fieldset>

@@ -1,6 +1,7 @@
-import { useState } from 'react';
-import { AlertTriangle, CalendarHeart, Check, Copy, Heart, LoaderCircle, LogOut, Palette, ShieldCheck, Sparkles, UsersRound, X } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { AlertTriangle, Bell, BellOff, CalendarHeart, Check, Copy, Heart, LoaderCircle, LogOut, Palette, ShieldCheck, Smartphone, Sparkles, UsersRound, X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { currentPushSubscription, disablePush, enablePush, pushSupport } from '../lib/pushNotifications';
 import PickerField from './PickerField';
 
 const themes=[['blush','暖粉'],['tiffany','蒂芬妮綠'],['midnight','靜藍'],['sky','晴空藍'],['lilac','夢紫'],['cherry','莓果紅'],['sage','森綠'],['sunset','蜜桃'],['latte','奶茶'],['butter','奶油黃']];
@@ -15,6 +16,12 @@ export default function SettingsPage({members,couple,user,theme,onRefresh,onNoti
   const [leaveOpen,setLeaveOpen]=useState(false);
   const [leaving,setLeaving]=useState(false);
   const [leaveError,setLeaveError]=useState('');
+  const [pushState,setPushState]=useState(()=>pushSupport());
+  const [pushEnabled,setPushEnabled]=useState(false);
+  const [pushBusy,setPushBusy]=useState(false);
+  const [pushError,setPushError]=useState('');
+
+  useEffect(()=>{currentPushSubscription().then(subscription=>setPushEnabled(Boolean(subscription))).catch(()=>{});},[]);
 
   async function save(e){
     e.preventDefault();
@@ -55,6 +62,15 @@ export default function SettingsPage({members,couple,user,theme,onRefresh,onNoti
     window.location.replace('/');
   }
 
+  async function togglePush(){
+    setPushBusy(true);setPushError('');
+    try{
+      if(pushEnabled){await disablePush();setPushEnabled(false);onNotify('行程通知已關閉');}
+      else{await enablePush(user.id);setPushEnabled(true);setPushState(pushSupport());onNotify('行程通知已開啟');}
+    }catch(notificationError){setPushError(notificationError.message||'無法變更通知設定。');setPushState(pushSupport());}
+    finally{setPushBusy(false);}
+  }
+
   return <section className="feature-page settings-page">
     <header className="page-title-row"><div><p className="eyebrow">你們的小天地</p><h1>設定</h1><p>管理共同空間、重要日期與你的個人主題。</p></div></header>
     <section className="settings-overview">
@@ -74,6 +90,14 @@ export default function SettingsPage({members,couple,user,theme,onRefresh,onNoti
         <label>紀念日<PickerField type="date" value={anniversary} onChange={e=>setAnniversary(e.target.value)} ariaLabel="在一起的日子"/></label>
         <button className="auth-submit settings-save" disabled={saving}>{saving?<LoaderCircle className="spin"/>:<><Check size={17}/>儲存日期</>}</button>
       </form>
+        <section className="settings-card notification-card"><div className="settings-card-heading"><span className="settings-icon">{pushEnabled?<Bell/>:<BellOff/>}</span><div><small>NOTIFICATIONS</small><h2>行程通知</h2></div></div>
+          <p>{pushEnabled?'這台裝置會在你設定的時間收到行程提醒。':'在行程開始前，讓 Duet 主動提醒你。'}</p>
+          <div className={`notification-status ${pushEnabled?'enabled':''}`}><span>{pushEnabled?<Bell size={18}/>:<Smartphone size={18}/>}</span><div><strong>{pushEnabled?'這台裝置已開啟通知':!pushState.standalone?'請先加入 iPhone 主畫面':'尚未開啟通知'}</strong><small>{pushEnabled?'可在 iPhone「設定 > 通知 > Duet」管理':!pushState.standalone?'從 Safari 分享選單選擇「加入主畫面」':'點擊下方按鈕後允許通知'}</small></div></div>
+          {!pushState.supported&&<p className="notification-help">這個瀏覽器不支援 Web Push 通知。</p>}
+          {pushState.permission==='denied'&&<p className="notification-help">通知權限已被拒絕，請到 iPhone 設定中手動開啟。</p>}
+          {pushError&&<p className="auth-message" role="alert">{pushError}</p>}
+          <button type="button" className={pushEnabled?'notification-toggle disable':'auth-submit notification-toggle'} onClick={togglePush} disabled={pushBusy||!pushState.supported||(!pushEnabled&&!pushState.standalone)}>{pushBusy?<LoaderCircle className="spin" size={18}/>:pushEnabled?<><BellOff size={17}/>關閉這台裝置的通知</>:<><Bell size={17}/>開啟行程通知</>}</button>
+        </section>
       </div>
       <div className="settings-stack">
         <section className="settings-card theme-card"><div className="settings-card-heading"><span className="settings-icon"><Palette/></span><div><small>APPEARANCE</small><h2>你的主題</h2></div></div><p>這是你自己的外觀，不會改變另一半的畫面。</p><div className="settings-themes">{themes.map(([value,label])=><button type="button" key={value} className={theme===value?'selected':''} aria-pressed={theme===value} onClick={()=>onTheme(value)}><i className={`theme-preview ${value}`}><b/><em/></i><span>{label}</span>{theme===value&&<Check size={14}/>}</button>)}</div></section>
