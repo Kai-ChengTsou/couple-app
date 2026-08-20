@@ -271,18 +271,18 @@ img{-webkit-user-drag:none}
 }
 
 /* Native-feeling motion system */
-:root{--motion-fast:180ms;--motion-page:280ms;--motion-sheet:340ms;--ease-out:cubic-bezier(.22,1,.36,1);--ease-spring:cubic-bezier(.2,.9,.25,1.08)}
+:root{--motion-fast:240ms;--motion-page:420ms;--motion-sheet:460ms;--ease-out:cubic-bezier(.16,1,.3,1);--ease-spring:cubic-bezier(.16,.88,.24,1.04)}
 .page-transition{min-width:0;animation:page-enter var(--motion-page) var(--ease-out) both;will-change:transform,opacity}
 .modal-backdrop{animation:scrim-enter var(--motion-fast) ease-out both}
 .modal-backdrop>.modal{animation:modal-enter var(--motion-sheet) var(--ease-spring) both;transform-origin:50% 55%;will-change:transform,opacity}
 .memory-lightbox figure{animation:photo-enter var(--motion-sheet) var(--ease-spring) both}
-.toast{animation:toast-enter 260ms var(--ease-spring) both}
-.wish-schedule,.task-progress-editor{animation:reveal-enter 230ms var(--ease-out) both;transform-origin:top center}
+.toast{animation:toast-enter 360ms var(--ease-spring) both}
+.wish-schedule,.task-progress-editor{animation:reveal-enter 340ms var(--ease-out) both;transform-origin:top center}
 .mobile-nav button,.section-tabs button,.filter-bar button,.nav-item,.icon-button,.add-button,.auth-submit,.outline-button,.text-button{transition:background-color var(--motion-fast) ease,color var(--motion-fast) ease,border-color var(--motion-fast) ease,transform var(--motion-fast) var(--ease-out),box-shadow var(--motion-fast) ease}
-.mobile-nav button svg{transition:transform 220ms var(--ease-spring)}
+.mobile-nav button svg{transition:transform 280ms var(--ease-spring)}
 .mobile-nav button.active svg{transform:translateY(-1px) scale(1.08)}
 .mobile-nav button:active,.section-tabs button:active,.icon-button:active,.add-button:active,.outline-button:active,.text-button:active{transform:scale(.96)}
-.wish-card,.memory-card,.task-row,.settings-card,.event-row{transition:transform 200ms var(--ease-out),box-shadow 200ms ease,border-color 200ms ease,background-color 200ms ease}
+.wish-card,.memory-card,.task-row,.settings-card,.event-row{transition:transform 280ms var(--ease-out),box-shadow 280ms ease,border-color 280ms ease,background-color 280ms ease}
 .wish-card:active,.memory-card:active,.event-row:active{transform:scale(.985)}
 @keyframes page-enter{from{opacity:0;transform:translate3d(0,10px,0) scale(.995)}to{opacity:1;transform:none}}
 @keyframes scrim-enter{from{opacity:0;backdrop-filter:blur(0)}to{opacity:1;backdrop-filter:blur(4px)}}
@@ -291,8 +291,8 @@ img{-webkit-user-drag:none}
 @keyframes toast-enter{from{opacity:0;transform:translate(-50%,12px) scale(.96)}to{opacity:1;transform:translate(-50%,0) scale(1)}}
 @keyframes reveal-enter{from{opacity:0;transform:translateY(-6px) scaleY(.97)}to{opacity:1;transform:none}}
 @media(max-width:760px){
-  .page-transition{animation-duration:240ms}
-  .modal-backdrop>.modal{animation-name:sheet-enter;animation-duration:360ms;transform-origin:bottom center}
+  .page-transition{animation-duration:380ms}
+  .modal-backdrop>.modal{animation-name:sheet-enter;animation-duration:480ms;transform-origin:bottom center}
   @keyframes sheet-enter{from{opacity:.35;transform:translate3d(0,42px,0) scale(.985)}to{opacity:1;transform:none}}
 }
 @media(prefers-reduced-motion:reduce){
@@ -301,17 +301,18 @@ img{-webkit-user-drag:none}
 
 /* Distinct transition personalities */
 .transition-home{animation-name:duet-fade}
-.transition-calendar{position:relative;animation-name:duet-wipe;animation-duration:340ms}
-.transition-wishlist{animation-name:duet-pop;animation-duration:320ms}
-.transition-us{animation-name:duet-slide;animation-duration:320ms}
-.transition-settings{animation-name:duet-soft-reveal;animation-duration:340ms}
-.transition-calendar::after{content:"";position:absolute;z-index:70;inset:0;pointer-events:none;background:linear-gradient(100deg,transparent 0%,color-mix(in srgb,var(--primary) 10%,transparent) 46%,transparent 72%);animation:wipe-shine 420ms var(--ease-out) both}
-.transition-wishlist .wishlist-overview{animation:feature-pop 380ms 45ms var(--ease-spring) both}
-.transition-us .our-overview{animation:feature-slide 350ms 40ms var(--ease-out) both}
-.transition-settings .settings-overview{animation:feature-pop 360ms 45ms var(--ease-spring) both}
-.modal-backdrop>.wish-action-modal{animation-name:action-pop!important;animation-duration:300ms!important;transform-origin:center bottom!important}
+.transition-calendar{position:relative;animation-name:calendar-focus-reveal;animation-duration:440ms;transform-origin:50% 38%}
+.transition-wishlist{animation-name:duet-pop;animation-duration:420ms}
+.transition-us{animation-name:duet-slide;animation-duration:420ms}
+.transition-settings{animation-name:duet-soft-reveal;animation-duration:440ms}
+.transition-calendar::after{display:none}
+.transition-wishlist .wishlist-overview{animation:feature-pop 440ms 45ms var(--ease-spring) both}
+.transition-us .our-overview{animation:feature-slide 420ms 40ms var(--ease-out) both}
+.transition-settings .settings-overview{animation:feature-pop 430ms 45ms var(--ease-spring) both}
+.modal-backdrop>.wish-action-modal{animation-name:action-pop!important;animation-duration:420ms!important;transform-origin:center bottom!important}
 @keyframes duet-fade{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}
 @keyframes duet-wipe{from{opacity:.35;clip-path:inset(0 0 0 100%);transform:translateX(8px)}to{opacity:1;clip-path:inset(0);transform:none}}
+@keyframes calendar-focus-reveal{0%{opacity:0;transform:scale(.965);filter:blur(5px)}60%{opacity:1;filter:blur(0)}100%{opacity:1;transform:scale(1);filter:blur(0)}}
 @keyframes duet-pop{0%{opacity:0;transform:scale(.94) translateY(8px)}70%{opacity:1;transform:scale(1.008)}100%{opacity:1;transform:none}}
 @keyframes duet-slide{from{opacity:0;transform:translateX(18px)}to{opacity:1;transform:none}}
 @keyframes duet-soft-reveal{from{opacity:0;transform:scale(.975) translateY(10px)}to{opacity:1;transform:none}}
@@ -319,3 +320,17 @@ img{-webkit-user-drag:none}
 @keyframes feature-pop{from{opacity:0;transform:scale(.96) translateY(10px)}to{opacity:1;transform:none}}
 @keyframes feature-slide{from{opacity:0;transform:translateX(16px)}to{opacity:1;transform:none}}
 @keyframes action-pop{0%{opacity:0;transform:translateY(16px) scale(.9)}72%{opacity:1;transform:translateY(0) scale(1.015)}100%{opacity:1;transform:none}}
+
+/* Calm, elegant calendar interaction rhythm */
+.calendar-month-motion{animation:calendar-month-enter 420ms var(--ease-out) both}
+.day-agenda{animation:agenda-enter 400ms var(--ease-out) both;transform-origin:top center}
+.calendar-day{transition:background-color 260ms ease,box-shadow 320ms var(--ease-out),color 260ms ease,transform 220ms var(--ease-out)}
+.calendar-day:active{transform:scale(.975)}
+.agenda-event{transition:background-color 260ms ease,transform 280ms var(--ease-out),box-shadow 280ms ease}
+.agenda-event:active{transform:scale(.985)}
+.event-chip{transition:background-color 260ms ease,color 260ms ease,transform 280ms var(--ease-out)}
+.event-modal .event-form>*{animation:calendar-field-enter 420ms var(--ease-out) both}
+.event-modal .event-form>*:nth-child(2){animation-delay:35ms}.event-modal .event-form>*:nth-child(3){animation-delay:55ms}.event-modal .event-form>*:nth-child(4){animation-delay:75ms}.event-modal .event-form>*:nth-child(5){animation-delay:95ms}.event-modal .event-form>*:nth-child(n+6){animation-delay:115ms}
+@keyframes calendar-month-enter{from{opacity:.12}to{opacity:1}}
+@keyframes agenda-enter{from{opacity:0}to{opacity:1}}
+@keyframes calendar-field-enter{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}

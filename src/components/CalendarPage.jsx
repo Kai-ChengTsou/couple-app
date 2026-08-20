@@ -108,7 +108,7 @@ export default function CalendarPage({ initialDate, events, members, couple, use
           <h2>{monthLabel}</h2><span className="calendar-legend"><span><i className="plan-dot"/>有安排</span><span><i className="holiday-dot"/>節日</span></span>
         </div>
         <div className="weekday-row">{['日','一','二','三','四','五','六'].map(day=><span key={day}>{day}</span>)}</div>
-        <div className="month-grid">
+        <div className="month-grid calendar-month-motion" key={`${cursor.getFullYear()}-${cursor.getMonth()}`}>
           {days.map(date=>{
             const key=date.toLocaleDateString('en-CA'), dayEvents=byDate[key]||[], inMonth=date.getMonth()===cursor.getMonth(), isToday=key===new Date().toLocaleDateString('en-CA'), selected=key===selectedKey;
             const dayHolidays=holidayForDate(date,couple), cellItems=[...dayHolidays,...dayEvents];
@@ -121,7 +121,7 @@ export default function CalendarPage({ initialDate, events, members, couple, use
           })}
         </div>
       </div>
-      <aside className="day-agenda panel">
+      <aside className="day-agenda panel" key={selectedKey}>
         <div className="agenda-date"><span>{selectedDate.toLocaleDateString('en',{weekday:'long'})}</span><strong>{selectedDate.getDate()}</strong><small>{selectedDate.toLocaleDateString('en',{month:'long',year:'numeric'})}</small></div>
         <div className="agenda-heading"><h3>當天的安排</h3><button className="icon-button" aria-label="新增當日行程" onClick={()=>openNew(selectedDate)}><Plus size={18}/></button></div>
         {(selectedEvents.length||selectedHolidays.length) ? <div className="agenda-list">{selectedHolidays.map(item=><article className="agenda-event holiday-event" key={item.id}>
