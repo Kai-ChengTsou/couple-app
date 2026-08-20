@@ -1,6 +1,51 @@
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 
+const SIGNED_URL_SECONDS = 60 * 60 * 24 * 7;
+const SIGNED_URL_CACHE_MS = 1000 * 60 * 60 * 24 * 6;
+
+function readSignedCache(bucket) {
+  try { return JSON.parse(localStorage.getItem(`duet-photo-urls:${bucket}`) || '{}'); }
+  catch { return {}; }
+}
+
+function writeSignedCache(bucket, cache) {
+  try { localStorage.setItem(`duet-photo-urls:${bucket}`, JSON.stringify(cache)); }
+  catch {}
+}
+
+async function resolveSignedUrls(bucket, paths) {
+  const uniquePaths = [...new Set(paths.filter(Boolean))];
+  if (!uniquePaths.length) return {};
+  const now = Date.now();
+  const cache = readSignedCache(bucket);
+  const resolved = {};
+  const missing = [];
+  uniquePaths.forEach(path => {
+    const saved = cache[path];
+    if (saved?.url && saved.expiresAt > now) resolved[path] = saved.url;
+    else missing.push(path);
+  });
+  if (missing.length) {
+    const result = await supabase.storage.from(bucket).createSignedUrls(missing, SIGNED_URL_SECONDS);
+    (result.data ?? []).forEach(photo => {
+      if (!photo.signedUrl) return;
+      resolved[photo.path] = photo.signedUrl;
+      cache[photo.path] = { url: photo.signedUrl, expiresAt: now + SIGNED_URL_CACHE_MS };
+    });
+    writeSignedCache(bucket, cache);
+  }
+  return resolved;
+}
+
+function warmPhotoCache(urls) {
+  urls.filter(Boolean).slice(0, 16).forEach(url => {
+    const image = new Image();
+    image.decoding = 'async';
+    image.src = url;
+  });
+}
+
 export function useDuetData(user) {
   const [state, setState] = useState({ loading: true, profile: null, couple: null, members: [], events: [], wishes: [], tasks: [], memories: [], countdowns: [] });
 
@@ -29,18 +74,13 @@ export function useDuetData(user) {
     const members = memberRows.map(member => ({ ...member, profile: profilesById[member.user_id] ?? null }));
     const rawWishes = wishResult.data ?? [];
     const wishPhotoPaths = rawWishes.map(wish => wish.image_path).filter(Boolean);
-    const wishSignedResult = wishPhotoPaths.length
-      ? await supabase.storage.from('wishlist-photos').createSignedUrls(wishPhotoPaths, 60 * 60 * 24 * 7)
-      : { data: [] };
-    const wishSignedByPath = Object.fromEntries((wishSignedResult.data ?? []).filter(photo => photo.signedUrl).map(photo => [photo.path, photo.signedUrl]));
+    const wishSignedByPath = await resolveSignedUrls('wishlist-photos', wishPhotoPaths);
     const wishes = rawWishes.map(wish => ({ ...wish, image_url: wish.image_path ? wishSignedByPath[wish.image_path] ?? null : wish.image_url }));
     const rawMemories = memoryResult.data ?? [];
     const photoPaths = rawMemories.map(memory => memory.image_path).filter(Boolean);
-    const signedResult = photoPaths.length
-      ? await supabase.storage.from('memory-photos').createSignedUrls(photoPaths, 60 * 60 * 24 * 7)
-      : { data: [] };
-    const signedByPath = Object.fromEntries((signedResult.data ?? []).filter(photo => photo.signedUrl).map(photo => [photo.path, photo.signedUrl]));
+    const signedByPath = await resolveSignedUrls('memory-photos', photoPaths);
     const memories = rawMemories.map(memory => ({ ...memory, image_url: memory.image_path ? signedByPath[memory.image_path] ?? null : memory.image_url }));
+    warmPhotoCache([...wishes.map(wish => wish.image_url), ...memories.map(memory => memory.image_url)]);
     setState({ loading: false, profile: profileResult.data, couple, members, events: eventResult.data ?? [], wishes, tasks: taskResult.data ?? [], memories, countdowns: countdownResult.data ?? [] });
   }, [user]);
 
