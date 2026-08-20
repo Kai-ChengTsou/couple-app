@@ -27,6 +27,13 @@ export function useDuetData(user) {
       : { data: [] };
     const profilesById = Object.fromEntries((profilesResult.data ?? []).map(memberProfile => [memberProfile.id, memberProfile]));
     const members = memberRows.map(member => ({ ...member, profile: profilesById[member.user_id] ?? null }));
+    const rawWishes = wishResult.data ?? [];
+    const wishPhotoPaths = rawWishes.map(wish => wish.image_path).filter(Boolean);
+    const wishSignedResult = wishPhotoPaths.length
+      ? await supabase.storage.from('wishlist-photos').createSignedUrls(wishPhotoPaths, 60 * 60 * 24 * 7)
+      : { data: [] };
+    const wishSignedByPath = Object.fromEntries((wishSignedResult.data ?? []).filter(photo => photo.signedUrl).map(photo => [photo.path, photo.signedUrl]));
+    const wishes = rawWishes.map(wish => ({ ...wish, image_url: wish.image_path ? wishSignedByPath[wish.image_path] ?? null : wish.image_url }));
     const rawMemories = memoryResult.data ?? [];
     const photoPaths = rawMemories.map(memory => memory.image_path).filter(Boolean);
     const signedResult = photoPaths.length
@@ -34,7 +41,7 @@ export function useDuetData(user) {
       : { data: [] };
     const signedByPath = Object.fromEntries((signedResult.data ?? []).filter(photo => photo.signedUrl).map(photo => [photo.path, photo.signedUrl]));
     const memories = rawMemories.map(memory => ({ ...memory, image_url: memory.image_path ? signedByPath[memory.image_path] ?? null : memory.image_url }));
-    setState({ loading: false, profile: profileResult.data, couple, members, events: eventResult.data ?? [], wishes: wishResult.data ?? [], tasks: taskResult.data ?? [], memories, countdowns: countdownResult.data ?? [] });
+    setState({ loading: false, profile: profileResult.data, couple, members, events: eventResult.data ?? [], wishes, tasks: taskResult.data ?? [], memories, countdowns: countdownResult.data ?? [] });
   }, [user]);
 
   useEffect(() => { refresh(); }, [refresh]);

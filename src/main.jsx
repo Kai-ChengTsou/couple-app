@@ -20,7 +20,7 @@ const nav = [
   ['wishlist', '願望清單', Star], ['us', '我們', Heart]
 ];
 const wishCategoryLabels = {'date idea':'約會',place:'地點',trip:'旅行',gift:'禮物',food:'美食',movie:'電影','shared purchase':'共同購買'};
-const wishStatusLabels = {idea:'想法',planned:'已計畫',completed:'已完成'};
+const wishStatusLabels = {idea:'想法',accepted:'已答應',planned:'已計畫',completed:'已完成'};
 const eventCategoryLabels = {date:'約會',personal:'個人',work:'工作',family:'家庭',friends:'朋友',anniversary:'紀念日'};
 const eventScopeLabels = {shared:'共同安排'};
 
@@ -113,7 +113,7 @@ function App({ user = null, duet = null }) {
 
       <main>
         {active === 'calendar' ? <CalendarPage initialDate={calendarTarget} events={duet?.events || []} members={duet?.members || []} couple={duet?.couple} user={user} onRefresh={duet?.refresh || (()=>{})} onNotify={notify}/>
-        : active === 'wishlist' ? <WishlistPage items={duet?.wishes || []} couple={duet?.couple} user={user} onRefresh={duet?.refresh || (()=>{})} onNotify={notify}/>
+        : active === 'wishlist' ? <WishlistPage items={duet?.wishes || []} members={duet?.members || []} couple={duet?.couple} user={user} onRefresh={duet?.refresh || (()=>{})} onNotify={notify}/>
         : active === 'us' ? <OurSpacePage memories={duet?.memories || []} tasks={duet?.tasks || []} couple={duet?.couple} user={user} onRefresh={duet?.refresh || (()=>{})} onNotify={notify}/>
         : active === 'settings' ? <SettingsPage members={duet?.members || []} couple={duet?.couple} user={user} theme={theme} onRefresh={duet?.refresh || (()=>{})} onNotify={notify} onTheme={changeTheme}/>
         : <>
