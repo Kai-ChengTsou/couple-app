@@ -298,3 +298,24 @@ img{-webkit-user-drag:none}
 @media(prefers-reduced-motion:reduce){
   *,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
 }
+
+/* Distinct transition personalities */
+.transition-home{animation-name:duet-fade}
+.transition-calendar{position:relative;animation-name:duet-wipe;animation-duration:340ms}
+.transition-wishlist{animation-name:duet-pop;animation-duration:320ms}
+.transition-us{animation-name:duet-slide;animation-duration:320ms}
+.transition-settings{animation-name:duet-soft-reveal;animation-duration:340ms}
+.transition-calendar::after{content:"";position:absolute;z-index:70;inset:0;pointer-events:none;background:linear-gradient(100deg,transparent 0%,color-mix(in srgb,var(--primary) 10%,transparent) 46%,transparent 72%);animation:wipe-shine 420ms var(--ease-out) both}
+.transition-wishlist .wishlist-overview{animation:feature-pop 380ms 45ms var(--ease-spring) both}
+.transition-us .our-overview{animation:feature-slide 350ms 40ms var(--ease-out) both}
+.transition-settings .settings-overview{animation:feature-pop 360ms 45ms var(--ease-spring) both}
+.modal-backdrop>.wish-action-modal{animation-name:action-pop!important;animation-duration:300ms!important;transform-origin:center bottom!important}
+@keyframes duet-fade{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}
+@keyframes duet-wipe{from{opacity:.35;clip-path:inset(0 0 0 100%);transform:translateX(8px)}to{opacity:1;clip-path:inset(0);transform:none}}
+@keyframes duet-pop{0%{opacity:0;transform:scale(.94) translateY(8px)}70%{opacity:1;transform:scale(1.008)}100%{opacity:1;transform:none}}
+@keyframes duet-slide{from{opacity:0;transform:translateX(18px)}to{opacity:1;transform:none}}
+@keyframes duet-soft-reveal{from{opacity:0;transform:scale(.975) translateY(10px)}to{opacity:1;transform:none}}
+@keyframes wipe-shine{0%{opacity:0;transform:translateX(-45%)}35%{opacity:1}100%{opacity:0;transform:translateX(45%)}}
+@keyframes feature-pop{from{opacity:0;transform:scale(.96) translateY(10px)}to{opacity:1;transform:none}}
+@keyframes feature-slide{from{opacity:0;transform:translateX(16px)}to{opacity:1;transform:none}}
+@keyframes action-pop{0%{opacity:0;transform:translateY(16px) scale(.9)}72%{opacity:1;transform:translateY(0) scale(1.015)}100%{opacity:1;transform:none}}
