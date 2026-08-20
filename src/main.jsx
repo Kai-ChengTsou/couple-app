@@ -149,6 +149,7 @@ function App({ user = null, duet = null }) {
       </aside>
 
       <main>
+        <div className="page-transition" key={active}>
         {active === 'calendar' ? <CalendarPage initialDate={calendarTarget} events={duet?.events || []} members={duet?.members || []} couple={duet?.couple} user={user} onRefresh={duet?.refresh || (()=>{})} onNotify={notify}/>
         : active === 'wishlist' ? <WishlistPage items={duet?.wishes || []} members={duet?.members || []} couple={duet?.couple} user={user} onRefresh={duet?.refresh || (()=>{})} onNotify={notify}/>
         : active === 'us' ? <OurSpacePage memories={duet?.memories || []} tasks={duet?.tasks || []} couple={duet?.couple} user={user} onRefresh={duet?.refresh || (()=>{})} onNotify={notify}/>
@@ -213,6 +214,7 @@ function App({ user = null, duet = null }) {
           </aside>
         </section>
         </>}
+        </div>
       </main>
 
       <nav className="mobile-nav" aria-label="Mobile navigation">
