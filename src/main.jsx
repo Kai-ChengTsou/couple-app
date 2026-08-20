@@ -23,16 +23,32 @@ const wishCategoryLabels = {'date idea':'約會',place:'地點',trip:'旅行',gi
 const wishStatusLabels = {idea:'想法',accepted:'已答應',planned:'已計畫',completed:'已完成'};
 const eventCategoryLabels = {date:'約會',personal:'個人',work:'工作',family:'家庭',friends:'朋友',anniversary:'紀念日'};
 const eventScopeLabels = {shared:'共同安排'};
+const themeCanvas = {blush:'#f8f4f0',tiffany:'#f0f8f7',midnight:'#f1f4f9',sky:'#f2f8fb',lilac:'#f7f3f8',cherry:'#faf3f5',sage:'#f3f7f3',sunset:'#faf4ef',latte:'#f6f1eb',butter:'#faf7ed'};
+
+function storedTheme(userId, fallback = 'blush') {
+  try {
+    const saved = localStorage.getItem(`duet-theme:${userId}`) || localStorage.getItem('duet-theme');
+    return themeCanvas[saved] ? saved : (themeCanvas[fallback] ? fallback : 'blush');
+  } catch { return themeCanvas[fallback] ? fallback : 'blush'; }
+}
+
+function applySystemTheme(theme) {
+  const color = themeCanvas[theme] || themeCanvas.blush;
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', color);
+  document.documentElement.style.backgroundColor = color;
+  document.documentElement.style.setProperty('--launch-canvas', color);
+  document.body.style.backgroundColor = color;
+}
 
 function App({ user = null, duet = null }) {
-  const [theme, setTheme] = useState(duet?.profile?.theme || 'blush');
+  const [theme, setTheme] = useState(() => storedTheme(user?.id, duet?.profile?.theme));
   const initialParams=new URLSearchParams(window.location.search);
   const [active, setActive] = useState(initialParams.get('open')==='calendar'?'calendar':'home');
   const [calendarTarget,setCalendarTarget]=useState(initialParams.get('date'));
   const [toast, setToast] = useState('');
   const [pullDistance,setPullDistance]=useState(0);
   const [refreshing,setRefreshing]=useState(false);
-  const pullStart=useRef(null),pullValue=useRef(0);
+  const pullStart=useRef(null),pullValue=useRef(0),themeSaveQueue=useRef(Promise.resolve());
   const [now,setNow]=useState(()=>new Date());
   useEffect(()=>{const timer=window.setInterval(()=>setNow(new Date()),60000);if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js').catch(()=>{});return()=>window.clearInterval(timer);},[]);
   const today = useMemo(() => new Intl.DateTimeFormat('zh-TW', { weekday: 'long', month: 'long', day: 'numeric' }).format(now), [now]);
@@ -52,9 +68,30 @@ function App({ user = null, duet = null }) {
   const coupleName = duet?.couple?.name || '我們的空間';
   const inviteCode = duet?.couple?.invite_code;
 
+  useEffect(() => {
+    applySystemTheme(theme);
+    try {
+      localStorage.setItem('duet-theme', theme);
+      if (user?.id) localStorage.setItem(`duet-theme:${user.id}`, theme);
+    } catch {}
+  }, [theme, user?.id]);
+
   async function changeTheme(nextTheme) {
+    if (!themeCanvas[nextTheme]) return;
     setTheme(nextTheme);
-    if (user && supabase) await supabase.from('profiles').update({ theme: nextTheme }).eq('id', user.id);
+    applySystemTheme(nextTheme);
+    try {
+      localStorage.setItem('duet-theme', nextTheme);
+      if (user?.id) localStorage.setItem(`duet-theme:${user.id}`, nextTheme);
+    } catch {}
+    if (user && supabase) {
+      themeSaveQueue.current = themeSaveQueue.current.catch(() => {}).then(async () => {
+        const { error } = await supabase.from('profiles').update({ theme: nextTheme }).eq('id', user.id);
+        if (error) throw error;
+      });
+      try { await themeSaveQueue.current; }
+      catch { notify('主題已保存在這台裝置，雲端同步稍後再試'); }
+    }
   }
 
   const notify = (message) => {

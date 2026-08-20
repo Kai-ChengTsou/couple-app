@@ -3,11 +3,24 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#fbf8f5" />
+    <meta name="theme-color" content="#f8f4f0" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Duet" />
     <meta name="description" content="Duet — a shared space for two." />
+    <script>
+      (() => {
+        const colors = {blush:['#f8f4f0','#b54f6b'],tiffany:['#f0f8f7','#168f8a'],midnight:['#f1f4f9','#405c9a'],sky:['#f2f8fb','#4b83ad'],lilac:['#f7f3f8','#86609b'],cherry:['#faf3f5','#a9415d'],sage:['#f3f7f3','#527565'],sunset:['#faf4ef','#c26750'],latte:['#f6f1eb','#8a6755'],butter:['#faf7ed','#a87827']};
+        try {
+          const theme = localStorage.getItem('duet-theme');
+          const [color,primary] = colors[theme] || colors.blush;
+          document.querySelector('meta[name="theme-color"]').content = color;
+          document.documentElement.style.backgroundColor = color;
+          document.documentElement.style.setProperty('--launch-canvas', color);
+          document.documentElement.style.setProperty('--launch-primary', primary);
+        } catch {}
+      })();
+    </script>
     <link rel="manifest" href="/site.webmanifest" />
     <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png" />
     <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png" />
