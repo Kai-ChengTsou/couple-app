@@ -272,7 +272,7 @@ img{-webkit-user-drag:none}
 
 /* Native-feeling motion system */
 :root{--motion-fast:180ms;--motion-page:280ms;--motion-sheet:340ms;--ease-out:cubic-bezier(.22,1,.36,1);--ease-spring:cubic-bezier(.2,.9,.25,1.08)}
-.page-transition{min-width:0;animation:page-enter var(--motion-page) var(--ease-out) both;will-change:transform,opacity}
+.page-transition{min-width:0;animation:page-enter var(--motion-page) var(--ease-out) backwards}
 .modal-backdrop{animation:scrim-enter var(--motion-fast) ease-out both}
 .modal-backdrop>.modal{animation:modal-enter var(--motion-sheet) var(--ease-spring) both;transform-origin:50% 55%;will-change:transform,opacity}
 .memory-lightbox figure{animation:photo-enter var(--motion-sheet) var(--ease-spring) both}
@@ -305,7 +305,7 @@ img{-webkit-user-drag:none}
 .transition-wishlist{animation-name:duet-pop;animation-duration:320ms}
 .transition-us{animation-name:duet-slide;animation-duration:320ms}
 .transition-settings{animation-name:duet-soft-reveal;animation-duration:340ms}
-.transition-calendar::after{content:"";position:absolute;z-index:70;inset:0;pointer-events:none;background:linear-gradient(100deg,transparent 0%,color-mix(in srgb,var(--primary) 10%,transparent) 46%,transparent 72%);animation:wipe-shine 420ms var(--ease-out) both}
+.transition-calendar::after{content:"";position:absolute;z-index:70;inset:0;pointer-events:none;opacity:0;background:linear-gradient(100deg,transparent 0%,color-mix(in srgb,var(--primary) 10%,transparent) 46%,transparent 72%);animation:wipe-shine 420ms var(--ease-out) backwards}
 .transition-wishlist .wishlist-overview{animation:feature-pop 380ms 45ms var(--ease-spring) both}
 .transition-us .our-overview{animation:feature-slide 350ms 40ms var(--ease-out) both}
 .transition-settings .settings-overview{animation:feature-pop 360ms 45ms var(--ease-spring) both}
