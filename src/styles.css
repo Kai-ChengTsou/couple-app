@@ -227,6 +227,17 @@ img{-webkit-user-drag:none}
 
 /* Wishlist actions and private photos */
 .wish-card[role="button"]{cursor:pointer}
+.wish-card-topline{padding-right:48px!important}
+.wish-action-modal{width:min(540px,100%);padding:28px}
+.wish-action-modal>p:not(.eyebrow){margin:6px 0 18px;color:var(--muted);font-size:10px}
+.wish-action-choices{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+.wish-action-choices>button{min-height:132px;padding:15px 10px;border:1px solid var(--line);border-radius:16px;background:var(--surface);color:var(--ink);display:grid;place-items:center;align-content:center;gap:6px;text-align:center;cursor:pointer;transition:transform .18s ease,border-color .18s ease,background .18s ease}
+.wish-action-choices>button:active{transform:scale(.97)}
+.wish-action-choices>button.active{border-color:var(--primary);background:var(--soft);color:var(--primary-deep)}
+.wish-action-choices>button:disabled{opacity:.5;cursor:default}
+.wish-action-choices>button>span{width:42px;height:42px;border-radius:13px;background:var(--soft);color:var(--primary);display:grid;place-items:center}
+.wish-action-choices strong{font-size:12px}.wish-action-choices small{min-height:28px;color:var(--muted);font-size:8px;line-height:1.45}
+.wish-action-modal .wish-accepted-note{margin-top:12px}
 .loading-screen{--primary:var(--launch-primary,#b54f6b);background:radial-gradient(circle at 50% 25%,color-mix(in srgb,var(--primary) 12%,var(--launch-canvas,#f8f4f0)),var(--launch-canvas,#f8f4f0) 55%)}
 .wish-card[role="button"]:focus-visible{outline:3px solid color-mix(in srgb,var(--primary) 34%,transparent);outline-offset:3px}
 .wish-card-art>img{position:absolute;z-index:1;inset:0;width:100%;height:100%;object-fit:cover}
@@ -252,4 +263,9 @@ img{-webkit-user-drag:none}
   .wish-schedule>.auth-submit{grid-column:1/-1;width:100%;height:48px}
   .wishlist-modal .event-form{grid-template-columns:repeat(2,minmax(0,1fr))}
   .wishlist-modal .photo-preview{height:170px}
+  .wish-card-topline{padding-right:52px!important}
+  .wish-action-modal{align-self:end;width:100%;padding:24px 18px calc(20px + env(safe-area-inset-bottom));border-radius:24px 24px 0 0}
+  .wish-action-choices{gap:7px}
+  .wish-action-choices>button{min-height:126px;padding:12px 7px;border-radius:14px}
+  .wish-action-choices>button>span{width:39px;height:39px}
 }
