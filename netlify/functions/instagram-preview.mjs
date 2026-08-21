@@ -32,6 +32,21 @@ function validInstagramUrl(value){
   return parsed;
 }
 
+function instagramEmbedUrl(parsed){
+  const match=parsed.pathname.match(/^\/(?:p|reel|tv)\/([^/]+)/i);
+  return match?new URL(`https://www.instagram.com/p/${match[1]}/embed/captioned/`):null;
+}
+
+function genericInstagramPage(title='',description=''){
+  return /welcome back to instagram|log in to see photos|sign up to see photos|登入以查看|歡迎回到 instagram/i.test(`${title} ${description}`);
+}
+
+async function fetchInstagramHtml(url){
+  const response=await fetch(url,{headers:{'User-Agent':'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Version/18.0 Mobile/15E148 Safari/604.1','Accept-Language':'zh-TW,zh;q=0.9,en;q=0.7'},redirect:'follow',signal:AbortSignal.timeout(12000)});
+  if(!response.ok)throw new Error(`Instagram returned ${response.status}`);
+  return {response,html:(await response.text()).slice(0,1500000)};
+}
+
 function cleanCaption(title,description){
   const quoted=title.match(/on Instagram:\s*[“"]([\s\S]+?)[”"]\s*$/i)?.[1];
   let caption=quoted||description||title;
@@ -126,13 +141,22 @@ export default async req=>{
   const instagramUrl=validInstagramUrl(body?.url?.trim());
   if(!instagramUrl)return json({error:'請貼上有效的 Instagram 貼文或 Reel 連結。'},400);
   try{
-    const response=await fetch(instagramUrl,{headers:{'User-Agent':'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Version/18.0 Mobile/15E148 Safari/604.1','Accept-Language':'zh-TW,zh;q=0.9,en;q=0.7'},redirect:'follow',signal:AbortSignal.timeout(12000)});
-    if(!response.ok)throw new Error(`Instagram returned ${response.status}`);
+    let {response,html}=await fetchInstagramHtml(instagramUrl);
     if(!validInstagramUrl(response.url))throw new Error('Unexpected redirect');
-    const html=(await response.text()).slice(0,1500000);
-    const rawTitle=meta(html,'og:title')||meta(html,'twitter:title');
-    const description=meta(html,'og:description')||meta(html,'description');
-    if(!rawTitle&&!description)return json({error:'Instagram 沒有提供這則內容的公開資料。你仍可以保留連結並手動輸入店名。'},422);
+    let rawTitle=meta(html,'og:title')||meta(html,'twitter:title');
+    let description=meta(html,'og:description')||meta(html,'description');
+    if((!rawTitle&&!description)||genericInstagramPage(rawTitle,description)){
+      const embedUrl=instagramEmbedUrl(instagramUrl);
+      if(embedUrl){
+        try{
+          const embed=await fetchInstagramHtml(embedUrl);
+          const embedTitle=meta(embed.html,'og:title')||meta(embed.html,'twitter:title');
+          const embedDescription=meta(embed.html,'og:description')||meta(embed.html,'description');
+          if(!genericInstagramPage(embedTitle,embedDescription)&&(embedTitle||embedDescription)){response=embed.response;html=embed.html;rawTitle=embedTitle;description=embedDescription;}
+        }catch(embedError){console.warn('Instagram embed fallback unavailable',embedError.message);}
+      }
+    }
+    if((!rawTitle&&!description)||genericInstagramPage(rawTitle,description))return json({error:'Instagram 只回傳登入頁，無法讀取這則貼文。請確認是公開貼文，或改用「手動填寫」保留連結。'},422);
     const caption=cleanCaption(rawTitle,description);
     const ruleLocation=locationFrom(caption);
     const ruleStoreName=storeNameFrom(caption);
@@ -151,7 +175,7 @@ export default async req=>{
       location,
       category:useAi?aiResult.category:categoryFrom(`${caption} ${rawTitle}`),
       recognition:useAi?'ai':'rules',
-      canonicalUrl:response.url,
+      canonicalUrl:instagramUrl.href,
       imageDataUrl:image
     });
   }catch(error){
