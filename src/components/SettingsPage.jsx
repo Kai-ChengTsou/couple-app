@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { AlertTriangle, Bell, BellOff, CalendarHeart, Check, Copy, Heart, LoaderCircle, LogOut, Palette, ShieldCheck, Smartphone, Sparkles, UsersRound, X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { currentPushSubscription, disablePush, enablePush, pushSupport } from '../lib/pushNotifications';
+import { currentPushPreferences, currentPushSubscription, defaultPushPreferences, disablePush, enablePush, pushSupport, updatePushPreferences } from '../lib/pushNotifications';
 import PickerField from './PickerField';
 
 const themes=[['blush','暖粉'],['tiffany','蒂芬妮綠'],['midnight','靜藍'],['sky','晴空藍'],['lilac','夢紫'],['cherry','莓果紅'],['sage','森綠'],['sunset','蜜桃'],['latte','奶茶'],['butter','奶油黃']];
@@ -19,9 +19,11 @@ export default function SettingsPage({members,couple,user,theme,onRefresh,onNoti
   const [pushState,setPushState]=useState(()=>pushSupport());
   const [pushEnabled,setPushEnabled]=useState(false);
   const [pushBusy,setPushBusy]=useState(false);
+  const [preferenceBusy,setPreferenceBusy]=useState('');
+  const [pushPreferences,setPushPreferences]=useState({...defaultPushPreferences});
   const [pushError,setPushError]=useState('');
 
-  useEffect(()=>{currentPushSubscription().then(subscription=>setPushEnabled(Boolean(subscription))).catch(()=>{});},[]);
+  useEffect(()=>{Promise.all([currentPushSubscription(),currentPushPreferences()]).then(([subscription,preferences])=>{setPushEnabled(Boolean(subscription));setPushPreferences(preferences);}).catch(()=>{});},[]);
 
   async function save(e){
     e.preventDefault();
@@ -66,9 +68,18 @@ export default function SettingsPage({members,couple,user,theme,onRefresh,onNoti
     setPushBusy(true);setPushError('');
     try{
       if(pushEnabled){await disablePush();setPushEnabled(false);onNotify('Duet 通知已關閉');}
-      else{await enablePush(user.id);setPushEnabled(true);setPushState(pushSupport());onNotify('Duet 通知已開啟');}
+      else{await enablePush(user.id,pushPreferences);setPushEnabled(true);setPushState(pushSupport());onNotify('Duet 通知已開啟');}
     }catch(notificationError){setPushError(notificationError.message||'無法變更通知設定。');setPushState(pushSupport());}
     finally{setPushBusy(false);}
+  }
+
+  async function togglePushPreference(key,label){
+    if(!pushEnabled)return;
+    const next={...pushPreferences,[key]:!pushPreferences[key]};
+    setPreferenceBusy(key);setPushError('');setPushPreferences(next);
+    try{await updatePushPreferences({[key]:next[key]});onNotify(`${label}通知已${next[key]?'開啟':'關閉'}`);}
+    catch(preferenceError){setPushPreferences(pushPreferences);setPushError(preferenceError.message||'無法更新通知選擇。');}
+    finally{setPreferenceBusy('');}
   }
 
   return <section className="feature-page settings-page">
@@ -92,7 +103,12 @@ export default function SettingsPage({members,couple,user,theme,onRefresh,onNoti
       </form>
         <section className="settings-card notification-card"><div className="settings-card-heading"><span className="settings-icon">{pushEnabled?<Bell/>:<BellOff/>}</span><div><small>NOTIFICATIONS</small><h2>貼心提醒</h2></div></div>
           <p>{pushEnabled?'這台裝置會收到你們共同生活的重要更新。':'讓 Duet 在重要時刻主動提醒你。'}</p>
-          <div className="notification-topics" aria-label="通知內容"><span><CalendarHeart size={14}/>行程與重要日期</span><span><Heart size={14}/>願望被答應</span><span><Check size={14}/>共同任務進度</span></div>
+          <div className={`notification-topics ${pushEnabled?'':'disabled'}`} aria-label="選擇通知內容">
+            <button type="button" className={pushPreferences.notify_schedule?'selected':''} aria-pressed={pushPreferences.notify_schedule} disabled={!pushEnabled||Boolean(preferenceBusy)} onClick={()=>togglePushPreference('notify_schedule','行程與重要日期')}>{preferenceBusy==='notify_schedule'?<LoaderCircle className="spin" size={14}/>:<CalendarHeart size={14}/>}<span>行程與重要日期</span><b>{pushPreferences.notify_schedule?'開啟':'關閉'}</b></button>
+            <button type="button" className={pushPreferences.notify_wishes?'selected':''} aria-pressed={pushPreferences.notify_wishes} disabled={!pushEnabled||Boolean(preferenceBusy)} onClick={()=>togglePushPreference('notify_wishes','願望')}>{preferenceBusy==='notify_wishes'?<LoaderCircle className="spin" size={14}/>:<Heart size={14}/>}<span>願望被答應</span><b>{pushPreferences.notify_wishes?'開啟':'關閉'}</b></button>
+            <button type="button" className={pushPreferences.notify_tasks?'selected':''} aria-pressed={pushPreferences.notify_tasks} disabled={!pushEnabled||Boolean(preferenceBusy)} onClick={()=>togglePushPreference('notify_tasks','共同任務')}>{preferenceBusy==='notify_tasks'?<LoaderCircle className="spin" size={14}/>:<Check size={14}/>}<span>共同任務進度</span><b>{pushPreferences.notify_tasks?'開啟':'關閉'}</b></button>
+          </div>
+          {!pushEnabled&&<small className="notification-topic-help">開啟這台裝置的通知後，即可個別選擇提醒。</small>}
           <div className={`notification-status ${pushEnabled?'enabled':''}`}><span>{pushEnabled?<Bell size={18}/>:<Smartphone size={18}/>}</span><div><strong>{pushEnabled?'這台裝置已開啟通知':!pushState.standalone?'請先加入 iPhone 主畫面':'尚未開啟通知'}</strong><small>{pushEnabled?'可在 iPhone「設定 > 通知 > Duet」管理':!pushState.standalone?'從 Safari 分享選單選擇「加入主畫面」':'點擊下方按鈕後允許通知'}</small></div></div>
           {!pushState.supported&&<p className="notification-help">這個瀏覽器不支援 Web Push 通知。</p>}
           {pushState.permission==='denied'&&<p className="notification-help">通知權限已被拒絕，請到 iPhone 設定中手動開啟。</p>}

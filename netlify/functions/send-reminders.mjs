@@ -20,9 +20,11 @@ function daysBetween(target,today){
   return Math.round((toUtc(target)-toUtc(today))/86400000);
 }
 
-async function subscriptionsFor(db,userIds){
+async function subscriptionsFor(db,userIds,preference=null){
   if(!userIds.length)return [];
-  const {data,error}=await db.from('push_subscriptions').select('id,user_id,endpoint,p256dh,auth').in('user_id',userIds);
+  let query=db.from('push_subscriptions').select('id,user_id,endpoint,p256dh,auth').in('user_id',userIds);
+  if(preference)query=query.eq(preference,true);
+  const {data,error}=await query;
   if(error)throw error;
   return data||[];
 }
@@ -57,7 +59,7 @@ async function sendEventReminders(db,now){
       const {data:members}=await db.from('couple_members').select('user_id').eq('couple_id',event.couple_id);
       userIds=(members||[]).map(member=>member.user_id);
     }
-    const subscriptions=await subscriptionsFor(db,userIds);
+    const subscriptions=await subscriptionsFor(db,userIds,'notify_schedule');
     const starts=new Date(event.starts_at);
     const dateKey=localDateKey(starts);
     const time=new Intl.DateTimeFormat('zh-TW',{timeZone:TIME_ZONE,month:'numeric',day:'numeric',hour:'numeric',minute:'2-digit'}).format(starts);
@@ -110,7 +112,8 @@ async function sendActivityNotifications(db,now){
     const {data:claimed,error:claimError}=await db.from('notification_outbox').update({sent_at:now.toISOString()}).eq('id',message.id).is('sent_at',null).select('id').maybeSingle();
     if(claimError)throw claimError;
     if(!claimed)continue;
-    const subscriptions=await subscriptionsFor(db,[message.recipient_id]);
+    const preference=message.kind==='wish_accepted'?'notify_wishes':message.kind==='task_progress'?'notify_tasks':'notify_schedule';
+    const subscriptions=await subscriptionsFor(db,[message.recipient_id],preference);
     sent+=await deliver(db,subscriptions,{title:message.title,body:message.body,tag:message.tag,url:message.url},86400);
   }
   return {checked:messages?.length||0,sent};

@@ -1,6 +1,7 @@
 import { supabase } from './supabase';
 
 const publicKey=import.meta.env.VITE_VAPID_PUBLIC_KEY;
+export const defaultPushPreferences={notify_schedule:true,notify_wishes:true,notify_tasks:true};
 
 function decodeKey(value){
   const padding='='.repeat((4-value.length%4)%4);
@@ -20,7 +21,22 @@ export async function currentPushSubscription(){
   return registration.pushManager.getSubscription();
 }
 
-export async function enablePush(userId){
+export async function currentPushPreferences(){
+  const subscription=await currentPushSubscription();
+  if(!subscription)return {...defaultPushPreferences};
+  const {data,error}=await supabase.from('push_subscriptions').select('notify_schedule,notify_wishes,notify_tasks').eq('endpoint',subscription.endpoint).maybeSingle();
+  if(error)throw error;
+  return data||{...defaultPushPreferences};
+}
+
+export async function updatePushPreferences(preferences){
+  const subscription=await currentPushSubscription();
+  if(!subscription)throw new Error('請先開啟這台裝置的通知。');
+  const {error}=await supabase.from('push_subscriptions').update({...preferences,updated_at:new Date().toISOString()}).eq('endpoint',subscription.endpoint);
+  if(error)throw error;
+}
+
+export async function enablePush(userId,preferences=defaultPushPreferences){
   if(!publicKey)throw new Error('通知服務尚未完成設定。');
   const registration=await navigator.serviceWorker.register('/sw.js');
   const permission=await Notification.requestPermission();
@@ -28,7 +44,7 @@ export async function enablePush(userId){
   let subscription=await registration.pushManager.getSubscription();
   if(!subscription)subscription=await registration.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:decodeKey(publicKey)});
   const json=subscription.toJSON();
-  const {error}=await supabase.from('push_subscriptions').upsert({user_id:userId,endpoint:json.endpoint,p256dh:json.keys.p256dh,auth:json.keys.auth,updated_at:new Date().toISOString()},{onConflict:'endpoint'});
+  const {error}=await supabase.from('push_subscriptions').upsert({user_id:userId,endpoint:json.endpoint,p256dh:json.keys.p256dh,auth:json.keys.auth,...preferences,updated_at:new Date().toISOString()},{onConflict:'endpoint'});
   if(error)throw error;
   return subscription;
 }
