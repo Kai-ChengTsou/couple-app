@@ -41,8 +41,21 @@ function cleanCaption(title,description){
 }
 
 function locationFrom(caption){
-  const match=caption.match(/(?:📍|店名|地點|地址|位置|location|address)\s*[:：]?\s*([^\n#|]{2,80})/i);
+  const match=caption.match(/(?:📍|地點|地址|位置|location|address)\s*[:：]?\s*([^\n#|]{2,80})/i);
   return match?.[1]?.replace(/[。,.，;；]+$/,'').trim()||'';
+}
+
+function storeNameFrom(caption){
+  const patterns=[
+    /《\s*([^》\n]{2,80})\s*》/,
+    /「\s*([^」\n]{2,80})\s*」/,
+    /(?:店名|店家|餐廳|咖啡廳|venue|restaurant)\s*[:：]\s*([^\n#|]{2,80})/i
+  ];
+  for(const pattern of patterns){
+    const name=caption.match(pattern)?.[1]?.replace(/^[《「“"]|[》」”"]$/g,'').trim();
+    if(name)return name;
+  }
+  return '';
 }
 
 function categoryFrom(text){
@@ -52,10 +65,10 @@ function categoryFrom(text){
   return 'place';
 }
 
-function suggestedTitle(caption,location,title){
-  if(location)return location;
-  const firstLine=caption.split('\n').map(line=>line.replace(/^[-•·\s]+/,'').trim()).find(line=>line.length>1&&!/^\d+\s+(likes?|comments?)/i.test(line));
-  const fallback=firstLine||title.replace(/\s*•\s*Instagram.*$/i,'').replace(/\s+on Instagram.*$/i,'')||'Instagram 收藏';
+function suggestedTitle(caption,storeName,location,title){
+  if(storeName)return storeName;
+  const firstLine=caption.split('\n').map(line=>line.replace(/^[-•·\s]+/,'').trim()).find(line=>line.length>1&&!/^\d+\s+(likes?|comments?)/i.test(line)&&!/(?:📍|地址|地點|位置|address|location)/i.test(line)&&line!==location);
+  const fallback=firstLine||title.replace(/\s*•\s*Instagram.*$/i,'').replace(/\s+on Instagram.*$/i,'')||location||'Instagram 收藏';
   return fallback.length>72?`${fallback.slice(0,69)}…`:fallback;
 }
 
@@ -97,12 +110,14 @@ export default async req=>{
     if(!rawTitle&&!description)return json({error:'Instagram 沒有提供這則內容的公開資料。你仍可以保留連結並手動輸入店名。'},422);
     const caption=cleanCaption(rawTitle,description);
     const location=locationFrom(caption);
+    const storeName=storeNameFrom(caption);
     const imageUrl=meta(html,'og:image')||meta(html,'twitter:image');
     let image='';
     try{image=await imageDataUrl(imageUrl);}catch{}
     return json({
-      title:suggestedTitle(caption,location,rawTitle),
+      title:suggestedTitle(caption,storeName,location,rawTitle),
       description:caption.slice(0,1200),
+      storeName,
       location,
       category:categoryFrom(`${caption} ${rawTitle}`),
       canonicalUrl:response.url,
