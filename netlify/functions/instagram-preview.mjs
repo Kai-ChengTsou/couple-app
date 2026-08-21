@@ -86,6 +86,31 @@ async function imageDataUrl(url){
   return `data:${type.split(';')[0]};base64,${Buffer.from(bytes).toString('base64')}`;
 }
 
+function parseAiJson(text=''){
+  const candidate=text.replace(/^```(?:json)?\s*/i,'').replace(/\s*```$/,'').trim();
+  const start=candidate.indexOf('{'),end=candidate.lastIndexOf('}');
+  if(start<0||end<=start)return null;
+  try{return JSON.parse(candidate.slice(start,end+1));}catch{return null;}
+}
+
+async function recognizeWithAi({caption,rawTitle,image}){
+  const baseUrl=Netlify.env.get('ANTHROPIC_BASE_URL')?.replace(/\/$/,'');
+  const authToken=Netlify.env.get('ANTHROPIC_AUTH_TOKEN');
+  const model=Netlify.env.get('ANTHROPIC_MODEL')||'claude-sonnet-4-6';
+  if(!baseUrl||!authToken)return null;
+  const content=[{type:'text',text:`你正在分析一則 Instagram 餐廳／景點收藏。請從貼文文字與封面找出真正的店名，不要把地址、宣傳句、帳號名稱或 Hashtag 當成店名。只輸出 JSON，不要 Markdown：{"storeName":"","location":"","category":"food|place|trip|movie","confidence":0.0}。無法確認的欄位用空字串。\n\nOG 標題：${rawTitle.slice(0,500)}\n貼文內容：${caption.slice(0,4000)}`}];
+  const imageMatch=image.match(/^data:(image\/(?:jpeg|png|gif|webp));base64,(.+)$/s);
+  if(imageMatch)content.push({type:'image',source:{type:'base64',media_type:imageMatch[1],data:imageMatch[2]}});
+  const endpoint=baseUrl.endsWith('/v1')?`${baseUrl}/messages`:`${baseUrl}/v1/messages`;
+  const response=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${authToken}`,'anthropic-version':'2023-06-01'},body:JSON.stringify({model,max_tokens:300,temperature:0,messages:[{role:'user',content}]}),signal:AbortSignal.timeout(25000)});
+  if(!response.ok)throw new Error(`AI returned ${response.status}`);
+  const result=await response.json();
+  const parsed=parseAiJson(result.content?.find(block=>block.type==='text')?.text);
+  if(!parsed)return null;
+  const allowedCategories=new Set(['food','place','trip','movie']);
+  return {storeName:String(parsed.storeName||'').trim().slice(0,120),location:String(parsed.location||'').trim().slice(0,180),category:allowedCategories.has(parsed.category)?parsed.category:'place',confidence:Math.max(0,Math.min(1,Number(parsed.confidence)||0))};
+}
+
 export default async req=>{
   if(req.method!=='POST')return json({error:'Method not allowed'},405);
   const supabaseUrl=Netlify.env.get('SUPABASE_URL');
@@ -109,17 +134,23 @@ export default async req=>{
     const description=meta(html,'og:description')||meta(html,'description');
     if(!rawTitle&&!description)return json({error:'Instagram 沒有提供這則內容的公開資料。你仍可以保留連結並手動輸入店名。'},422);
     const caption=cleanCaption(rawTitle,description);
-    const location=locationFrom(caption);
-    const storeName=storeNameFrom(caption);
+    const ruleLocation=locationFrom(caption);
+    const ruleStoreName=storeNameFrom(caption);
     const imageUrl=meta(html,'og:image')||meta(html,'twitter:image');
     let image='';
     try{image=await imageDataUrl(imageUrl);}catch{}
+    let aiResult=null;
+    try{aiResult=await recognizeWithAi({caption,rawTitle,image});}catch(aiError){console.warn('AI recognition unavailable; using rules',aiError.message);}
+    const useAi=Boolean(aiResult&&aiResult.confidence>=0.55&&(aiResult.storeName||aiResult.location));
+    const storeName=useAi&&aiResult.storeName?aiResult.storeName:ruleStoreName;
+    const location=useAi&&aiResult.location?aiResult.location:ruleLocation;
     return json({
       title:suggestedTitle(caption,storeName,location,rawTitle),
       description:caption.slice(0,1200),
       storeName,
       location,
-      category:categoryFrom(`${caption} ${rawTitle}`),
+      category:useAi?aiResult.category:categoryFrom(`${caption} ${rawTitle}`),
+      recognition:useAi?'ai':'rules',
       canonicalUrl:response.url,
       imageDataUrl:image
     });
