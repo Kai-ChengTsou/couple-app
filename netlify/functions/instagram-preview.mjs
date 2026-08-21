@@ -113,7 +113,7 @@ async function recognizeWithAi({caption,rawTitle,image}){
   const authToken=Netlify.env.get('ANTHROPIC_AUTH_TOKEN');
   const model=Netlify.env.get('ANTHROPIC_MODEL')||'claude-sonnet-4-6';
   if(!baseUrl||!authToken)return null;
-  const content=[{type:'text',text:`你正在分析一則 Instagram 餐廳／景點收藏。請從貼文文字與封面找出真正的店名，不要把地址、宣傳句、帳號名稱或 Hashtag 當成店名。只輸出 JSON，不要 Markdown：{"storeName":"","location":"","category":"food|place|trip|movie","confidence":0.0}。無法確認的欄位用空字串。\n\nOG 標題：${rawTitle.slice(0,500)}\n貼文內容：${caption.slice(0,4000)}`}];
+  const content=[{type:'text',text:`你正在分析一則 Instagram 餐廳／景點收藏。請從貼文文字與封面找出真正的店名，不要把地址、宣傳句、帳號名稱或 Hashtag 當成店名。另寫一段適合放在情侶願望清單「備註」欄的繁體中文摘要，最多兩句、120 個中文字，保留店家特色、推薦餐點或體驗重點；移除按讚／留言數、帳號、Hashtag、折扣宣傳、私訊要求與重複文字。不可杜撰貼文沒有的資訊。只輸出 JSON，不要 Markdown：{"storeName":"","location":"","category":"food|place|trip|movie","summary":"","confidence":0.0}。無法確認的欄位用空字串。\n\nOG 標題：${rawTitle.slice(0,500)}\n貼文內容：${caption.slice(0,4000)}`}];
   const imageMatch=image.match(/^data:(image\/(?:jpeg|png|gif|webp));base64,(.+)$/s);
   if(imageMatch)content.push({type:'image',source:{type:'base64',media_type:imageMatch[1],data:imageMatch[2]}});
   const endpoint=baseUrl.endsWith('/v1')?`${baseUrl}/messages`:`${baseUrl}/v1/messages`;
@@ -123,7 +123,7 @@ async function recognizeWithAi({caption,rawTitle,image}){
   const parsed=parseAiJson(result.content?.find(block=>block.type==='text')?.text);
   if(!parsed)return null;
   const allowedCategories=new Set(['food','place','trip','movie']);
-  return {storeName:String(parsed.storeName||'').trim().slice(0,120),location:String(parsed.location||'').trim().slice(0,180),category:allowedCategories.has(parsed.category)?parsed.category:'place',confidence:Math.max(0,Math.min(1,Number(parsed.confidence)||0))};
+  return {storeName:String(parsed.storeName||'').trim().slice(0,120),location:String(parsed.location||'').trim().slice(0,180),category:allowedCategories.has(parsed.category)?parsed.category:'place',summary:String(parsed.summary||'').trim().slice(0,300),confidence:Math.max(0,Math.min(1,Number(parsed.confidence)||0))};
 }
 
 export default async req=>{
@@ -170,7 +170,7 @@ export default async req=>{
     const location=useAi&&aiResult.location?aiResult.location:ruleLocation;
     return json({
       title:suggestedTitle(caption,storeName,location,rawTitle),
-      description:caption.slice(0,1200),
+      description:useAi&&aiResult.summary?aiResult.summary:caption.slice(0,1200),
       storeName,
       location,
       category:useAi?aiResult.category:categoryFrom(`${caption} ${rawTitle}`),
