@@ -43,7 +43,8 @@ function applySystemTheme(theme) {
 function App({ user = null, duet = null }) {
   const [theme, setTheme] = useState(() => storedTheme(user?.id, duet?.profile?.theme));
   const initialParams=new URLSearchParams(window.location.search);
-  const [active, setActive] = useState(initialParams.get('open')==='calendar'?'calendar':'home');
+  const requestedPage=initialParams.get('open');
+  const [active, setActive] = useState([...nav.map(([id])=>id),'settings'].includes(requestedPage)?requestedPage:'home');
   const [calendarTarget,setCalendarTarget]=useState(initialParams.get('date'));
   const [toast, setToast] = useState('');
   const [pullDistance,setPullDistance]=useState(0);
