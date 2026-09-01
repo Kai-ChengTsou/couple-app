@@ -20,6 +20,20 @@ export default function WishlistPage({items,members,couple,user,onRefresh,onNoti
   const memberNames=Object.fromEntries((members||[]).map(member=>[member.user_id,member.profile?.display_name||'另一半']));
   useEffect(()=>{if(!photoFile)return setPhotoPreview('');const url=URL.createObjectURL(photoFile);setPhotoPreview(url);return()=>URL.revokeObjectURL(url);},[photoFile]);
   useEffect(()=>{if(!filterOpen)return;const closeOnEscape=event=>event.key==='Escape'&&setFilterOpen(false);window.addEventListener('keydown',closeOnEscape);return()=>window.removeEventListener('keydown',closeOnEscape);},[filterOpen]);
+  useEffect(()=>{
+    if(!actionOpen)return;
+    const sheet=document.querySelector('.wish-action-modal');
+    if(!sheet)return;
+    let startY=null,lastY=null,tracking=false;
+    const start=event=>{if(event.touches.length!==1||sheet.scrollTop>2)return;startY=event.touches[0].clientY;lastY=startY;tracking=true;};
+    const move=event=>{if(!tracking||startY===null)return;const touch=event.touches[0];if(!touch)return;lastY=touch.clientY;const distance=lastY-startY;if(distance<=0){setDetailDrag(0);return;}if(distance>8)event.preventDefault();setDetailDrag(distance);};
+    const finish=()=>{if(!tracking)return;const distance=(lastY??startY)-startY;tracking=false;startY=null;lastY=null;if(distance>70)closeActions();else setDetailDrag(0);};
+    sheet.addEventListener('touchstart',start,{passive:true});
+    sheet.addEventListener('touchmove',move,{passive:false});
+    sheet.addEventListener('touchend',finish,{passive:true});
+    sheet.addEventListener('touchcancel',finish,{passive:true});
+    return()=>{sheet.removeEventListener('touchstart',start);sheet.removeEventListener('touchmove',move);sheet.removeEventListener('touchend',finish);sheet.removeEventListener('touchcancel',finish);};
+  },[actionOpen]);
 
   function clearFilters(){setStatusFilter('all');setCategoryFilter('all');}
 
