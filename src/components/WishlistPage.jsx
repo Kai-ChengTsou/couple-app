@@ -35,14 +35,19 @@ export default function WishlistPage({items,members,couple,user,onRefresh,onNoti
     sheet.addEventListener('touchcancel',finish,{passive:true});
     return()=>{sheet.removeEventListener('touchstart',start);sheet.removeEventListener('touchmove',move);sheet.removeEventListener('touchend',finish);sheet.removeEventListener('touchcancel',finish);};
   },[actionOpen]);
+  useEffect(()=>{
+    const move=event=>{const start=cardSwipeStart.current,touch=event.touches?.[0];if(!start||!touch)return;const dx=touch.clientX-start.x,dy=touch.clientY-start.y;if(Math.abs(dx)<=Math.abs(dy)*1.15)return;event.preventDefault();const offset=Math.max(-96,Math.min(0,start.base+dx));start.element.style.transform=`translate3d(${offset}px,0,0)`;};
+    window.addEventListener('touchmove',move,{passive:false});
+    return()=>window.removeEventListener('touchmove',move);
+  },[]);
 
   function clearFilters(){setStatusFilter('all');setCategoryFilter('all');}
 
   function openEditor(item=null){setEditing(item);setCreateMode('manual');setError('');setImportError('');setImportPreview(null);setPhotoFile(null);setRemovePhoto(false);setForm(item?{title:item.title,category:item.category,location:item.location||'',url:item.url||'',estimated_price:item.estimated_price||'',status:item.status,notes:item.notes||'',image_path:item.image_path||'',image_url:item.image_url||''}:{...blank});setFormOpen(true);}
   function closeEditor(){if(importBusy)return;setFormOpen(false);setEditing(null);setCreateMode('manual');setForm({...blank});setError('');setImportError('');setImportPreview(null);setPhotoFile(null);setRemovePhoto(false);}
   function openActions(item){setEditing(item);setError('');setPlanning(false);setDetailDrag(0);setSchedule({date:'',time:'19:00'});setActionOpen(true);}
-  function startCardSwipe(event,itemId){const touch=event.touches?.[0];if(touch)cardSwipeStart.current={itemId,x:touch.clientX,y:touch.clientY};}
-  function endCardSwipe(event,itemId){const start=cardSwipeStart.current,touch=event.changedTouches?.[0];cardSwipeStart.current=null;if(!start||!touch||start.itemId!==itemId)return;const dx=touch.clientX-start.x,dy=touch.clientY-start.y;if(Math.abs(dx)<42||Math.abs(dx)<=Math.abs(dy)*1.2)return;if(dx<0)setSwipedWishId(itemId);else if(swipedWishId===itemId)setSwipedWishId(null);cardSwipeJustEnded.current=true;window.setTimeout(()=>{cardSwipeJustEnded.current=false;},0);}
+  function startCardSwipe(event,itemId){const touch=event.touches?.[0];if(touch)cardSwipeStart.current={itemId,x:touch.clientX,y:touch.clientY,base:swipedWishId===itemId?-88:0,element:event.currentTarget};}
+  function endCardSwipe(event,itemId){const start=cardSwipeStart.current,touch=event.changedTouches?.[0];cardSwipeStart.current=null;if(!start||!touch||start.itemId!==itemId)return;start.element.style.transform='';const dx=touch.clientX-start.x,dy=touch.clientY-start.y;if(Math.abs(dx)<32||Math.abs(dx)<=Math.abs(dy)*1.15)return;if(dx<0)setSwipedWishId(itemId);else if(swipedWishId===itemId)setSwipedWishId(null);cardSwipeJustEnded.current=true;window.setTimeout(()=>{cardSwipeJustEnded.current=false;},0);}
   function openWishCard(item){if(cardSwipeJustEnded.current)return;if(swipedWishId){setSwipedWishId(null);return;}openActions(item);}
   function closeActions(){setActionOpen(false);setEditing(null);setError('');setPlanning(false);setDetailDrag(0);detailDragStart.current=null;}
   function startDetailDrag(event){detailDragStart.current={start:event.clientY,last:event.clientY};event.currentTarget.setPointerCapture?.(event.pointerId);}
