@@ -27,9 +27,9 @@ export default function WishlistPage({items,members,couple,user,onRefresh,onNoti
   function closeEditor(){if(importBusy)return;setFormOpen(false);setEditing(null);setCreateMode('manual');setForm({...blank});setError('');setImportError('');setImportPreview(null);setPhotoFile(null);setRemovePhoto(false);}
   function openActions(item){setEditing(item);setError('');setPlanning(false);setDetailDrag(0);setSchedule({date:'',time:'19:00'});setActionOpen(true);}
   function closeActions(){setActionOpen(false);setEditing(null);setError('');setPlanning(false);setDetailDrag(0);detailDragStart.current=null;}
-  function startDetailDrag(event){detailDragStart.current=event.clientY;event.currentTarget.setPointerCapture?.(event.pointerId);}
-  function moveDetailDrag(event){if(detailDragStart.current===null)return;setDetailDrag(Math.max(0,event.clientY-detailDragStart.current));}
-  function endDetailDrag(){if(detailDrag>88)closeActions();else setDetailDrag(0);detailDragStart.current=null;}
+  function startDetailDrag(event){detailDragStart.current={start:event.clientY,last:event.clientY};event.currentTarget.setPointerCapture?.(event.pointerId);}
+  function moveDetailDrag(event){if(!detailDragStart.current)return;detailDragStart.current.last=event.clientY;setDetailDrag(Math.max(0,event.clientY-detailDragStart.current.start));}
+  function endDetailDrag(event){if(!detailDragStart.current)return;const endY=event?.clientY||detailDragStart.current.last;const distance=endY-detailDragStart.current.start;detailDragStart.current=null;if(distance>70)closeActions();else setDetailDrag(0);}
   function choosePhoto(event){const file=event.target.files?.[0];if(!file)return;if(!file.type.startsWith('image/'))return setError('請選擇照片檔案。');if(file.size>20*1024*1024)return setError('照片太大，請選擇小於 20 MB 的照片。');setError('');setRemovePhoto(false);setPhotoFile(file);}
   function showInstagramImporter(){setCreateMode('instagram');setImportError('');setImportPreview(null);}
   async function pasteInstagramUrl(){
