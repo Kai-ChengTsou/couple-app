@@ -47,6 +47,7 @@ create table public.wishlist_items (
   created_by uuid not null references public.profiles(id) on delete cascade,
   title text not null check (char_length(title) between 1 and 160),
   category text not null default 'idea',
+  location text,
   url text,
   image_url text,
   estimated_price numeric(12,2),

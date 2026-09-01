@@ -73,6 +73,18 @@ function storeNameFrom(caption){
   return '';
 }
 
+function priceFrom(caption=''){
+  const patterns=[
+    /(?:NT\$|NTD|新台幣|售價|價格|價錢|套餐|每人)\s*[:：]?\s*\$?\s*([0-9]{2,6}(?:,[0-9]{3})*)/i,
+    /\$\s*([0-9]{2,6}(?:,[0-9]{3})*)/
+  ];
+  for(const pattern of patterns){
+    const value=Number((caption.match(pattern)?.[1]||'').replace(/,/g,''));
+    if(Number.isFinite(value)&&value>0&&value<=10000000)return value;
+  }
+  return null;
+}
+
 function categoryFrom(text){
   if(/餐廳|咖啡|甜點|美食|早餐|午餐|晚餐|料理|restaurant|cafe|coffee|food|brunch|dessert/i.test(text))return 'food';
   if(/旅遊|旅行|飯店|住宿|景點|trip|travel|hotel|resort/i.test(text))return 'trip';
@@ -113,17 +125,18 @@ async function recognizeWithAi({caption,rawTitle,image}){
   const authToken=Netlify.env.get('ANTHROPIC_AUTH_TOKEN');
   const model=Netlify.env.get('ANTHROPIC_MODEL')||'claude-sonnet-4-6';
   if(!baseUrl||!authToken)return null;
-  const content=[{type:'text',text:`你正在分析一則 Instagram 餐廳／景點收藏。請從貼文文字與封面找出真正的店名，不要把地址、宣傳句、帳號名稱或 Hashtag 當成店名。另寫一段適合放在情侶願望清單「備註」欄的繁體中文摘要，最多兩句、120 個中文字，保留店家特色、推薦餐點或體驗重點；移除按讚／留言數、帳號、Hashtag、折扣宣傳、私訊要求與重複文字。不可杜撰貼文沒有的資訊。只輸出 JSON，不要 Markdown：{"storeName":"","location":"","category":"food|place|trip|movie","summary":"","confidence":0.0}。無法確認的欄位用空字串。\n\nOG 標題：${rawTitle.slice(0,500)}\n貼文內容：${caption.slice(0,4000)}`}];
+  const content=[{type:'text',text:`你正在分析一則 Instagram 餐廳／景點收藏。請從貼文 caption 與封面找出真正的店名、地點或地址；不要把宣傳句、帳號名稱或 Hashtag 當成店名。另寫一段適合放在情侶願望清單「備註」欄的繁體中文摘要，最多兩句、120 個中文字，保留店家特色、推薦餐點或體驗重點；移除按讚／留言數、帳號、Hashtag、私訊要求與重複文字。只有 caption 明確寫出價格、售價、套餐價或每人費用時，才回傳純數字 estimatedPrice；不可猜測或從一般數字推斷價格。不可杜撰貼文沒有的資訊。只輸出 JSON，不要 Markdown：{"storeName":"","location":"","category":"food|place|trip|movie","summary":"","estimatedPrice":null,"confidence":0.0}。無法確認的文字欄位用空字串，價格用 null。\n\nOG 標題：${rawTitle.slice(0,500)}\n貼文內容：${caption.slice(0,4000)}`}];
   const imageMatch=image.match(/^data:(image\/(?:jpeg|png|gif|webp));base64,(.+)$/s);
   if(imageMatch)content.push({type:'image',source:{type:'base64',media_type:imageMatch[1],data:imageMatch[2]}});
   const endpoint=baseUrl.endsWith('/v1')?`${baseUrl}/messages`:`${baseUrl}/v1/messages`;
-  const response=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${authToken}`,'anthropic-version':'2023-06-01'},body:JSON.stringify({model,max_tokens:300,temperature:0,messages:[{role:'user',content}]}),signal:AbortSignal.timeout(25000)});
+  const response=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${authToken}`,'anthropic-version':'2023-06-01'},body:JSON.stringify({model,max_tokens:340,temperature:0,messages:[{role:'user',content}]}),signal:AbortSignal.timeout(25000)});
   if(!response.ok)throw new Error(`AI returned ${response.status}`);
   const result=await response.json();
   const parsed=parseAiJson(result.content?.find(block=>block.type==='text')?.text);
   if(!parsed)return null;
   const allowedCategories=new Set(['food','place','trip','movie']);
-  return {storeName:String(parsed.storeName||'').trim().slice(0,120),location:String(parsed.location||'').trim().slice(0,180),category:allowedCategories.has(parsed.category)?parsed.category:'place',summary:String(parsed.summary||'').trim().slice(0,300),confidence:Math.max(0,Math.min(1,Number(parsed.confidence)||0))};
+  const estimatedPrice=Number(parsed.estimatedPrice);
+  return {storeName:String(parsed.storeName||'').trim().slice(0,120),location:String(parsed.location||'').trim().slice(0,180),category:allowedCategories.has(parsed.category)?parsed.category:'place',summary:String(parsed.summary||'').trim().slice(0,300),estimatedPrice:Number.isFinite(estimatedPrice)&&estimatedPrice>0&&estimatedPrice<=10000000?estimatedPrice:null,confidence:Math.max(0,Math.min(1,Number(parsed.confidence)||0))};
 }
 
 export default async req=>{
@@ -160,6 +173,7 @@ export default async req=>{
     const caption=cleanCaption(rawTitle,description);
     const ruleLocation=locationFrom(caption);
     const ruleStoreName=storeNameFrom(caption);
+    const rulePrice=priceFrom(caption);
     const imageUrl=meta(html,'og:image')||meta(html,'twitter:image');
     let image='';
     try{image=await imageDataUrl(imageUrl);}catch{}
@@ -173,6 +187,7 @@ export default async req=>{
       description:useAi&&aiResult.summary?aiResult.summary:caption.slice(0,1200),
       storeName,
       location,
+      estimatedPrice:useAi&&aiResult.estimatedPrice?aiResult.estimatedPrice:rulePrice,
       category:useAi?aiResult.category:categoryFrom(`${caption} ${rawTitle}`),
       recognition:useAi?'ai':'rules',
       canonicalUrl:instagramUrl.href,
