@@ -230,8 +230,9 @@ img{-webkit-user-drag:none}
 /* Wishlist actions and private photos */
 .wish-card[role="button"]{cursor:pointer}
 .wish-card-topline{padding-right:48px!important}
-.wish-action-modal{width:min(540px,100%);padding:28px}
+.wish-action-modal{width:min(600px,100%);max-height:min(880px,92dvh);padding:28px;overflow:auto}
 .wish-action-modal>p:not(.eyebrow){margin:6px 0 18px;color:var(--muted);font-size:10px}
+.wish-detail-hero{position:relative;height:180px;margin:-28px -28px 22px;display:grid;place-items:center;color:var(--primary);overflow:hidden}.wish-detail-hero>img{width:100%;height:100%;object-fit:cover}.wish-detail-category{position:absolute;left:18px;bottom:16px;min-height:32px;padding:0 10px;border-radius:99px;background:color-mix(in srgb,var(--surface) 90%,transparent);color:var(--primary-deep);display:flex;align-items:center;gap:5px;font-size:9px;font-weight:800;backdrop-filter:blur(10px)}.wish-detail-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;padding-right:42px}.wish-detail-heading h2{margin:3px 0 0}.wish-detail-edit{min-height:40px;padding:0 11px;border:1px solid var(--line);border-radius:11px;background:var(--surface);color:var(--primary);display:flex;align-items:center;gap:6px;font:800 9px inherit;cursor:pointer}.wish-detail-facts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));margin-top:18px;border:1px solid var(--line);border-radius:15px;background:color-mix(in srgb,var(--soft) 25%,var(--surface));overflow:hidden}.wish-detail-facts>span{min-width:0;padding:13px 12px;border-left:1px solid var(--line)}.wish-detail-facts>span:first-child{border-left:0}.wish-detail-facts small,.wish-detail-facts strong{display:block}.wish-detail-facts small,.wish-detail-description>small,.wish-detail-link small{color:var(--muted);font-size:8px}.wish-detail-facts strong{margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px}.wish-detail-description{margin-top:14px;padding:14px 15px;border-radius:14px;background:var(--canvas)}.wish-detail-description p{margin:6px 0 0;color:var(--ink);font-size:11px;line-height:1.65;white-space:pre-wrap}.wish-detail-link{min-height:52px;margin-top:10px;padding:0 14px;border:1px solid var(--line);border-radius:13px;color:var(--primary);display:flex;align-items:center;gap:10px;text-decoration:none}.wish-detail-link span,.wish-detail-link small,.wish-detail-link strong{display:block}.wish-detail-link strong{margin-top:2px;font-size:10px}.wish-detail-link:hover{background:var(--soft)}.wish-detail-action-heading{display:flex;align-items:baseline;gap:8px;margin:21px 0 10px;padding-top:18px;border-top:1px solid var(--line)}.wish-detail-action-heading strong{font-size:11px}.wish-detail-action-heading small{color:var(--muted);font-size:8px}
 .wish-action-choices{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
 .wish-action-choices>button{min-height:132px;padding:15px 10px;border:1px solid var(--line);border-radius:16px;background:var(--surface);color:var(--ink);display:grid;place-items:center;align-content:center;gap:6px;text-align:center;cursor:pointer;transition:transform .18s ease,border-color .18s ease,background .18s ease}
 .wish-action-choices>button:active{transform:scale(.97)}
@@ -273,9 +274,9 @@ img{-webkit-user-drag:none}
   .wishlist-modal .event-form{grid-template-columns:repeat(2,minmax(0,1fr))}
   .wishlist-modal .photo-preview{height:170px}
   .wish-card-topline{padding-right:52px!important}
-  .wish-action-modal{align-self:end;width:100%;padding:24px 18px calc(20px + env(safe-area-inset-bottom));border-radius:24px 24px 0 0}
+  .wish-action-modal{align-self:end;width:100%;max-height:92dvh;padding:24px 18px calc(20px + env(safe-area-inset-bottom));border-radius:24px 24px 0 0}.wish-detail-hero{height:170px;margin:-24px -18px 18px}.wish-detail-heading{padding-right:38px}.wish-detail-facts{grid-template-columns:repeat(2,minmax(0,1fr))}.wish-detail-facts>span:nth-child(odd){border-left:0}.wish-detail-facts>span:nth-child(n+3){border-top:1px solid var(--line)}.wish-detail-description{padding:13px}.wish-detail-action-heading{margin-top:18px}
   .wish-action-choices{gap:7px}
-  .wish-action-choices>button{min-height:126px;padding:12px 7px;border-radius:14px}
+  .wish-action-choices>button{min-height:105px;padding:10px 7px;border-radius:14px}
   .wish-action-choices>button>span{width:39px;height:39px}
 }
 
