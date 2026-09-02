@@ -27,7 +27,7 @@ export default function WishlistPage({items,members,couple,user,onRefresh,onNoti
     const sheet=document.querySelector('.wish-action-modal');
     if(!sheet)return;
     const locationRow=sheet.querySelector('.wish-detail-location');
-    const openLocation=()=>{if(!editing?.location)return;window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(editing.location)}`,'_blank','noopener,noreferrer');};
+    const openLocation=()=>{if(!editing?.location)return;window.location.assign(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(editing.location)}`);};
     const openLocationWithKeyboard=event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();openLocation();}};
     if(locationRow){locationRow.setAttribute('role','link');locationRow.setAttribute('tabindex','0');locationRow.setAttribute('aria-label',`在 Google 地圖搜尋 ${editing.location}`);locationRow.setAttribute('title','在 Google 地圖查看');locationRow.addEventListener('click',openLocation);locationRow.addEventListener('keydown',openLocationWithKeyboard);}
     let startY=null,lastY=null,tracking=false;
