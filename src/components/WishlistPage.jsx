@@ -26,6 +26,10 @@ export default function WishlistPage({items,members,couple,user,onRefresh,onNoti
     if(!actionOpen)return;
     const sheet=document.querySelector('.wish-action-modal');
     if(!sheet)return;
+    const locationRow=sheet.querySelector('.wish-detail-location');
+    const openLocation=()=>{if(!editing?.location)return;window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(editing.location)}`,'_blank','noopener,noreferrer');};
+    const openLocationWithKeyboard=event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();openLocation();}};
+    if(locationRow){locationRow.setAttribute('role','link');locationRow.setAttribute('tabindex','0');locationRow.setAttribute('aria-label',`在 Google 地圖搜尋 ${editing.location}`);locationRow.setAttribute('title','在 Google 地圖查看');locationRow.addEventListener('click',openLocation);locationRow.addEventListener('keydown',openLocationWithKeyboard);}
     let startY=null,lastY=null,tracking=false;
     const start=event=>{if(event.touches.length!==1||sheet.scrollTop>2)return;startY=event.touches[0].clientY;lastY=startY;tracking=true;};
     const move=event=>{if(!tracking||startY===null)return;const touch=event.touches[0];if(!touch)return;lastY=touch.clientY;const distance=lastY-startY;if(distance<=0){setDetailDrag(0);return;}if(distance>8)event.preventDefault();setDetailDrag(distance);};
@@ -34,7 +38,7 @@ export default function WishlistPage({items,members,couple,user,onRefresh,onNoti
     sheet.addEventListener('touchmove',move,{passive:false});
     sheet.addEventListener('touchend',finish,{passive:true});
     sheet.addEventListener('touchcancel',finish,{passive:true});
-    return()=>{sheet.removeEventListener('touchstart',start);sheet.removeEventListener('touchmove',move);sheet.removeEventListener('touchend',finish);sheet.removeEventListener('touchcancel',finish);};
+    return()=>{if(locationRow){locationRow.removeEventListener('click',openLocation);locationRow.removeEventListener('keydown',openLocationWithKeyboard);}sheet.removeEventListener('touchstart',start);sheet.removeEventListener('touchmove',move);sheet.removeEventListener('touchend',finish);sheet.removeEventListener('touchcancel',finish);};
   },[actionOpen]);
   useEffect(()=>{
     const move=event=>{const start=cardSwipeStart.current,touch=event.touches?.[0];if(!start||!touch)return;const dx=touch.clientX-start.x,dy=touch.clientY-start.y;if(Math.abs(dx)<=Math.abs(dy)*1.15)return;event.preventDefault();const offset=Math.max(-96,Math.min(0,start.base+dx));start.element.style.transform=`translate3d(${offset}px,0,0)`;};
