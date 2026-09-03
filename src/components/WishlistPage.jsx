@@ -46,7 +46,7 @@ export default function WishlistPage({items,members,couple,user,onRefresh,onNoti
       const map=L.map(mapElementRef.current,{zoomControl:false,attributionControl:true,minZoom:7.25,maxZoom:17,zoomSnap:.25,zoomDelta:.5,scrollWheelZoom:true,dragging:false,touchZoom:true,doubleClickZoom:false,boxZoom:false,keyboard:false,maxBounds:[[21.55,119.7],[25.6,122.35]],maxBoundsViscosity:1}).setView(taiwanCenter,overviewZoom);
       L.control.zoom({position:'bottomright'}).addTo(map);
       L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'&copy; OpenStreetMap contributors',maxZoom:19}).addTo(map);
-      map.on('dblclick',event=>map.setView(event.latlng,Math.min(map.getZoom()+1.25,map.getMaxZoom()),{animate:true}));
+      map.on('dblclick',event=>{if(map.getZoom()>overviewZoom)map.setView(taiwanCenter,overviewZoom,{animate:true});else map.setView(event.latlng,Math.min(overviewZoom+1.5,map.getMaxZoom()),{animate:true});});
       map.on('zoomend',()=>{if(map.getZoom()<=overviewZoom){map.dragging.disable();map.setView(taiwanCenter,overviewZoom,{animate:false});}else map.dragging.enable();});
       mapInstanceRef.current=map;mapMarkersRef.current=L.layerGroup().addTo(map);
     }
