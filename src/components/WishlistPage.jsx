@@ -42,7 +42,7 @@ export default function WishlistPage({items,members,couple,user,onRefresh,onNoti
     if(!mapInstanceRef.current){
       const map=L.map(mapElementRef.current,{zoomControl:false,attributionControl:true,minZoom:6,maxZoom:17,scrollWheelZoom:false}).setView([23.75,121],7);
       L.control.zoom({position:'bottomright'}).addTo(map);
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{attribution:'&copy; OpenStreetMap &copy; CARTO',subdomains:'abcd',maxZoom:20}).addTo(map);
+      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'&copy; OpenStreetMap contributors',maxZoom:19}).addTo(map);
       mapInstanceRef.current=map;mapMarkersRef.current=L.layerGroup().addTo(map);
     }
     const map=mapInstanceRef.current,layer=mapMarkersRef.current;layer.clearLayers();
