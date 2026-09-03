@@ -41,11 +41,11 @@ export default function WishlistPage({items,members,couple,user,onRefresh,onNoti
   useEffect(()=>{if(selectedMapWish&&!mappedWishes.some(item=>item.id===selectedMapWish.id))setSelectedMapWish(null);},[mappedWishes,selectedMapWish]);
   useEffect(()=>{
     if(viewMode!=='map'||!mappedWishes.length)return;
-    let cached={};try{cached=JSON.parse(localStorage.getItem('duet-wishlist-geocodes')||'{}');}catch{}const missing=mappedWishes.filter(item=>!cached[item.id]||cached[item.id].key!==`${item.title}|${item.location}`);
+    const geocodeCacheKey='duet-wishlist-geocodes-v2';let cached={};try{cached=JSON.parse(localStorage.getItem(geocodeCacheKey)||'{}');}catch{}const missing=mappedWishes.filter(item=>!cached[item.id]||cached[item.id].key!==`${item.title}|${item.location}`);
     setGeocodedLocations(Object.fromEntries(Object.entries(cached).map(([id,value])=>[id,value.coordinates])));
     if(!missing.length)return;
     let cancelled=false;
-    (async()=>{try{const {data:{session}}=await supabase.auth.getSession();if(!session)return;const response=await fetch('/api/wishlist-geocode',{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${session.access_token}`},body:JSON.stringify({items:missing.map(item=>({id:item.id,title:item.title,location:item.location}))})});if(!response.ok)return;const result=await response.json();for(const place of result.locations||[])cached[place.id]={key:`${missing.find(item=>item.id===place.id)?.title}|${missing.find(item=>item.id===place.id)?.location}`,coordinates:[place.latitude,place.longitude]};localStorage.setItem('duet-wishlist-geocodes',JSON.stringify(cached));if(!cancelled)setGeocodedLocations(Object.fromEntries(Object.entries(cached).map(([id,value])=>[id,value.coordinates])));}catch{}})();
+    (async()=>{try{const {data:{session}}=await supabase.auth.getSession();if(!session)return;const response=await fetch('/api/wishlist-geocode',{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${session.access_token}`},body:JSON.stringify({items:missing.map(item=>({id:item.id,title:item.title,location:item.location}))})});if(!response.ok)return;const result=await response.json();for(const place of result.locations||[])cached[place.id]={key:`${missing.find(item=>item.id===place.id)?.title}|${missing.find(item=>item.id===place.id)?.location}`,coordinates:[place.latitude,place.longitude]};localStorage.setItem(geocodeCacheKey,JSON.stringify(cached));if(!cancelled)setGeocodedLocations(Object.fromEntries(Object.entries(cached).map(([id,value])=>[id,value.coordinates])));}catch{}})();
     return()=>{cancelled=true;};
   },[viewMode,mappedWishes]);
   useEffect(()=>{
