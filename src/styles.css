@@ -282,6 +282,21 @@ img{-webkit-user-drag:none}
 @media(max-width:760px){.wishlist-map-section{margin-inline:calc(-1 * clamp(18px,5vw,24px));padding:0}.wishlist-map-heading{padding:2px clamp(18px,5vw,24px) 14px}.wishlist-map-heading h2{font-size:27px}.wishlist-map-layout{height:520px;margin:0}.wishlist-map-legend{left:14px;top:15px;width:91px;padding:12px 10px;gap:9px}.wishlist-map-legend span{font-size:8px}.wishlist-map-canvas .leaflet-control-zoom{display:none}.wishlist-map-preview{margin:-82px 14px 0;grid-template-columns:104px minmax(0,1fr);min-height:144px;border-radius:20px}.wishlist-map-preview>div:nth-child(3){padding:22px 42px 13px 13px}.wishlist-map-preview h3{font-size:17px;line-height:1.15}.wishlist-map-preview p{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.wishlist-map-preview>div>div:last-child{display:grid;grid-template-columns:1fr 1fr}.wishlist-map-hint,.wishlist-map-unmapped{margin-inline:18px}}
 @media(max-width:390px){.wishlist-map-layout{height:475px}.wishlist-map-preview{grid-template-columns:86px minmax(0,1fr);margin-inline:10px}.wishlist-map-preview>div:nth-child(3){padding-right:39px}.wishlist-map-preview>div>div:last-child button{font-size:8px}}
 @media(prefers-reduced-motion:reduce){.wishlist-leaflet-marker,.wishlist-map-preview{animation:none;transition:none}}
+
+.wishlist-full-map-heading{padding:4px 2px 2px}.wishlist-full-map-heading h1{font-size:31px}.wishlist-page.map-mode>.page-title-row,.wishlist-page.map-mode>.wishlist-overview,.wishlist-page.map-mode>.wishlist-kind-filter{display:none}.wishlist-page.map-mode>.wishlist-map-section>.wishlist-map-heading{display:none}
+@media(max-width:760px){
+  .wishlist-page.map-mode{position:fixed;z-index:55;inset:0 0 0 0;height:100dvh;padding:calc(env(safe-area-inset-top) + 20px) 0 calc(82px + env(safe-area-inset-bottom));background:var(--canvas);display:flex;flex-direction:column;overflow:hidden}
+  .wishlist-page.map-mode .wishlist-full-map-heading{flex:0 0 auto;padding:0 22px 15px}.wishlist-page.map-mode .wishlist-full-map-heading h1{font-size:31px;line-height:1.05}
+  .wishlist-page.map-mode>.wishlist-search-row{flex:0 0 auto;margin:0;padding:0 18px 16px}.wishlist-page.map-mode>.wishlist-ai-search-status{flex:0 0 auto;margin:0 20px 8px}
+  .wishlist-page.map-mode>.wishlist-map-section{position:relative;flex:1 1 auto;min-height:0;width:100%;margin:0;display:block;overflow:hidden}
+  .wishlist-page.map-mode .wishlist-map-layout{position:absolute;inset:0;height:auto;border:0}
+  .wishlist-page.map-mode .wishlist-map-preview{position:absolute;z-index:510;left:14px;right:14px;bottom:15px;margin:0;max-height:160px}
+  .wishlist-page.map-mode .wishlist-map-hint{position:absolute;z-index:510;left:50%;bottom:20px;margin:0;padding:9px 12px;border-radius:99px;background:rgba(255,253,251,.9);transform:translateX(-50%);white-space:nowrap;box-shadow:0 7px 20px rgba(55,39,44,.1)}
+  .wishlist-page.map-mode .wishlist-map-unmapped{display:none}
+  .app:has(.wishlist-page.map-mode) main{padding:0}.app:has(.wishlist-page.map-mode) .topbar{display:none}
+  .app:has(.wishlist-page.map-mode) .mobile-nav{z-index:60}
+  .app:has(.wishlist-page.map-mode) .wishlist-page.map-mode:has(.modal-backdrop){z-index:70}
+}
 .instagram-url-field>div{grid-template-columns:42px minmax(0,1fr) auto}.instagram-paste-button{align-self:stretch;min-width:68px;padding:0 12px;border:0;border-left:1px solid var(--line);background:color-mix(in srgb,var(--soft) 68%,var(--surface));color:var(--primary);display:flex;align-items:center;justify-content:center;gap:5px;font:800 9px inherit;cursor:pointer;touch-action:manipulation}.instagram-paste-button:active{background:var(--soft)}
 @media(max-width:390px){.instagram-paste-button{min-width:60px;padding:0 9px}.wishlist-kind-filter button{font-size:8px}}
 .wish-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:18px 0 4px}
