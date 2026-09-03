@@ -3,6 +3,7 @@ import {renderToStaticMarkup} from 'react-dom/server';
 import {createPortal} from 'react-dom';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import 'leaflet.markercluster';
 import {CalendarPlus,Camera,Check,Clipboard,ExternalLink,Film,Gift,HandHeart,Heart,Link2,LoaderCircle,Map as MapIcon,MapPin,Pencil,Plane,Plus,Search,ShoppingBag,SlidersHorizontal,Sparkles,Trash2,Upload,Utensils,X} from 'lucide-react';
 import {supabase} from '../lib/supabase';
 import {compressMemoryPhoto} from '../lib/images';
@@ -58,7 +59,7 @@ export default function WishlistPage({items,members,couple,user,onRefresh,onNoti
       L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'&copy; OpenStreetMap contributors',maxZoom:19}).addTo(map);
       map.on('dblclick',event=>{if(map.getZoom()>overviewZoom)map.setView(taiwanCenter,overviewZoom,{animate:true});else map.setView(event.latlng,Math.min(overviewZoom+1.5,map.getMaxZoom()),{animate:true});});
       map.on('zoomend',()=>{if(map.getZoom()<=overviewZoom){map.dragging.disable();map.setView(taiwanCenter,overviewZoom,{animate:false});}else map.dragging.enable();});
-      mapInstanceRef.current=map;mapMarkersRef.current=L.layerGroup().addTo(map);
+      mapInstanceRef.current=map;mapMarkersRef.current=L.markerClusterGroup({showCoverageOnHover:false,zoomToBoundsOnClick:true,spiderfyOnMaxZoom:true,spiderfyDistanceMultiplier:1.45,removeOutsideVisibleBounds:true,maxClusterRadius:zoom=>zoom<9?48:34,iconCreateFunction:cluster=>L.divIcon({className:'wishlist-cluster-wrap',html:`<span class="wishlist-cluster"><b>${cluster.getChildCount()}</b><small>個願望</small></span>`,iconSize:[52,52],iconAnchor:[26,26]})}).addTo(map);
     }
     const map=mapInstanceRef.current,layer=mapMarkersRef.current;layer.clearLayers();
     const regionCounts={},regionTotals=mappedWishes.reduce((totals,item)=>{const region=regionFromLocation(item.location);totals[region]=(totals[region]||0)+1;return totals;},{});
