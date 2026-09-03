@@ -40,21 +40,23 @@ export default function WishlistPage({items,members,couple,user,onRefresh,onNoti
   useEffect(()=>{
     if(viewMode!=='map'||!mapElementRef.current)return;
     if(!mapInstanceRef.current){
-      const map=L.map(mapElementRef.current,{zoomControl:false,attributionControl:true,minZoom:6,maxZoom:17,scrollWheelZoom:false}).setView([23.75,121],7);
+      const taiwanCenter=[23.72,120.96];
+      const map=L.map(mapElementRef.current,{zoomControl:false,attributionControl:true,minZoom:7.25,maxZoom:17,zoomSnap:.25,zoomDelta:.5,scrollWheelZoom:true,dragging:false,touchZoom:true,doubleClickZoom:true,boxZoom:false,keyboard:false,maxBounds:[[21.75,119.95],[25.5,122.15]],maxBoundsViscosity:1}).setView(taiwanCenter,7.75);
       L.control.zoom({position:'bottomright'}).addTo(map);
       L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'&copy; OpenStreetMap contributors',maxZoom:19}).addTo(map);
+      map.on('zoomend',()=>map.setView(taiwanCenter,map.getZoom(),{animate:false}));
       mapInstanceRef.current=map;mapMarkersRef.current=L.layerGroup().addTo(map);
     }
     const map=mapInstanceRef.current,layer=mapMarkersRef.current;layer.clearLayers();
-    const regionCounts={};
+    const regionCounts={},regionTotals=mappedWishes.reduce((totals,item)=>{const region=regionFromLocation(item.location);totals[region]=(totals[region]||0)+1;return totals;},{});
     mappedWishes.forEach(item=>{
       const region=regionFromLocation(item.location),base=regionCoordinates[region],sequence=regionCounts[region]||0;regionCounts[region]=sequence+1;
-      const angle=(sequence*137.5)*Math.PI/180,radius=sequence?Math.min(.1,.035+sequence*.012):0;
+      const total=regionTotals[region],angle=((sequence/Math.min(total,7))*Math.PI*2)-Math.PI/2,ring=Math.floor(sequence/7),radius=total>1?.14+(ring*.08):0;
       const coordinates=[base[0]+Math.sin(angle)*radius,base[1]+Math.cos(angle)*radius];
       const meta=categoryMeta[item.category]||categoryMeta.place,Icon=meta.Icon;
       const iconMarkup=renderToStaticMarkup(<Icon size={17} strokeWidth={2.2}/>);
       const icon=L.divIcon({className:'wishlist-leaflet-marker-wrap',html:`<span class="wishlist-leaflet-marker ${meta.tone}">${iconMarkup}</span>`,iconSize:[42,50],iconAnchor:[21,47],tooltipAnchor:[0,-42]});
-      L.marker(coordinates,{icon,keyboard:true,title:item.title}).bindTooltip(item.title,{direction:'top',offset:[0,-36]}).on('click',()=>setSelectedMapWish(item)).addTo(layer);
+      L.marker(coordinates,{icon,keyboard:true,title:item.title}).on('click',()=>setSelectedMapWish(item)).addTo(layer);
     });
     window.setTimeout(()=>map.invalidateSize(),0);
     return()=>{};
