@@ -21,10 +21,25 @@ const annualHolidays = {
   '12-25': ['聖誕節','交換祝福與小驚喜。'],
   '12-31': ['跨年夜','一起倒數迎接明年。'],
 };
+const taiwanDayOffPeriods2026=[
+  {dates:['2026-01-01'],title:'元旦',description:'新年第一天，也是中華民國開國紀念日。'},
+  {dates:['2026-02-14','2026-02-15','2026-02-16','2026-02-17','2026-02-18','2026-02-19','2026-02-20','2026-02-21','2026-02-22'],title:'春節連假',description:'農曆春節假期，包含除夕與春節；適合返鄉團聚。'},
+  {dates:['2026-02-27','2026-02-28','2026-03-01'],title:'和平紀念日連假',description:'紀念二二八和平紀念日。'},
+  {dates:['2026-04-03','2026-04-04','2026-04-05','2026-04-06'],title:'兒童節・清明節連假',description:'兒童節與清明節假期；清明是掃墓祭祖、緬懷先人的日子。'},
+  {dates:['2026-05-01','2026-05-02','2026-05-03'],title:'勞動節連假',description:'向勞工的付出致意；勞動節為法定休假日。'},
+  {dates:['2026-06-19','2026-06-20','2026-06-21'],title:'端午節連假',description:'端午節源於農曆五月初五，有吃粽子、立蛋與划龍舟等習俗。'},
+  {dates:['2026-09-25','2026-09-26','2026-09-27','2026-09-28'],title:'中秋節・教師節連假',description:'中秋節象徵團圓，常見賞月與吃月餅；9 月 28 日也是教師節。'},
+  {dates:['2026-10-09','2026-10-10','2026-10-11'],title:'國慶日連假',description:'10 月 10 日為中華民國國慶日。'},
+  {dates:['2026-10-24','2026-10-25','2026-10-26'],title:'臺灣光復節連假',description:'10 月 25 日為臺灣光復暨金門古寧頭大捷紀念日。'},
+  {dates:['2026-12-25','2026-12-26','2026-12-27'],title:'行憲紀念日連假',description:'12 月 25 日為行憲紀念日，也正好是聖誕節。'},
+];
+const taiwanDaysOff2026=Object.fromEntries(taiwanDayOffPeriods2026.flatMap(period=>period.dates.map(date=>[date,period])));
 
 function holidayForDate(date,couple){
   const monthDay=`${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
   const holidays=[];
+  const dateKey=date.toLocaleDateString('en-CA'),dayOff=taiwanDaysOff2026[dateKey];
+  if(dayOff)holidays.push({id:`tw-day-off-${dateKey}`,title:dayOff.title,description:dayOff.description,isHoliday:true,isDayOff:true});
   if(annualHolidays[monthDay])holidays.push({id:`holiday-${monthDay}`,title:annualHolidays[monthDay][0],description:annualHolidays[monthDay][1],isHoliday:true});
   const lunarParts=Object.fromEntries(lunarDateFormatter.formatToParts(date).filter(part=>part.type==='month'||part.type==='day').map(part=>[part.type,part.value]));
   if(Number(lunarParts.month)===7&&Number(lunarParts.day)===7)holidays.push({id:`qixi-${date.getFullYear()}`,title:'七夕情人節',description:'屬於彼此的浪漫日子。',isHoliday:true});
@@ -105,7 +120,7 @@ export default function CalendarPage({ initialDate, events, members, couple, use
       <div className="calendar-card">
         <div className="calendar-toolbar">
           <div><button className="icon-button" aria-label="上個月" onClick={()=>moveMonth(-1)}><ChevronLeft size={19}/></button><button className="today-button" onClick={()=>{setCursor(new Date());setSelectedDate(new Date())}}>今天</button><button className="icon-button" aria-label="下個月" onClick={()=>moveMonth(1)}><ChevronRight size={19}/></button></div>
-          <h2>{monthLabel}</h2><span className="calendar-legend"><span><i className="plan-dot"/>有安排</span><span><i className="holiday-dot"/>節日</span></span>
+          <h2>{monthLabel}</h2><span className="calendar-legend"><span><i className="plan-dot"/>有安排</span><span><i className="holiday-dot"/>節日</span><span><i className="day-off-dot"/>免上班</span></span>
         </div>
         <div className="weekday-row">{['日','一','二','三','四','五','六'].map(day=><span key={day}>{day}</span>)}</div>
         <div className="month-grid">
@@ -113,7 +128,7 @@ export default function CalendarPage({ initialDate, events, members, couple, use
             const key=date.toLocaleDateString('en-CA'), dayEvents=byDate[key]||[], inMonth=date.getMonth()===cursor.getMonth(), isToday=key===new Date().toLocaleDateString('en-CA'), selected=key===selectedKey;
             const dayHolidays=holidayForDate(date,couple), cellItems=[...dayHolidays,...dayEvents];
             const statusLabel=[dayEvents.length&&`${dayEvents.length} 個安排`,dayHolidays.length&&dayHolidays.map(item=>item.title).join('、')].filter(Boolean).join('，');
-            return <button key={key} aria-label={`${date.toLocaleDateString('zh-TW')}${statusLabel?`，${statusLabel}`:''}`} className={`calendar-day ${!inMonth?'muted-day':''} ${isToday?'today':''} ${selected?'selected':''} ${dayEvents.length?'has-events':''} ${dayHolidays.length?'has-holiday':''}`} onClick={()=>setSelectedDate(date)} onDoubleClick={()=>openNew(date)}>
+            return <button key={key} aria-label={`${date.toLocaleDateString('zh-TW')}${statusLabel?`，${statusLabel}`:''}`} className={`calendar-day ${!inMonth?'muted-day':''} ${isToday?'today':''} ${selected?'selected':''} ${dayEvents.length?'has-events':''} ${dayHolidays.length?'has-holiday':''} ${dayHolidays.some(item=>item.isDayOff)?'is-day-off':''}`} onClick={()=>setSelectedDate(date)} onDoubleClick={()=>openNew(date)}>
               <span className="day-number">{date.getDate()}</span>
               {cellItems.length>0&&<span className="day-status-icons" aria-hidden="true">{dayEvents.length>0&&<CalendarDays/>}{dayHolidays.length>0&&<Sparkles/>}</span>}
               <span className="day-events">{cellItems.slice(0,3).map(item=><i key={item.id} className={`event-chip ${item.isHoliday?'holiday':`category-${item.category}`}`}>{!item.isHoliday&&<span>{new Date(item.starts_at).toLocaleTimeString('zh-TW',{hour:'numeric'})}</span>}{item.title}</i>)}{cellItems.length>3&&<small>還有 {cellItems.length-3} 項</small>}</span>
@@ -125,7 +140,7 @@ export default function CalendarPage({ initialDate, events, members, couple, use
         <div className="agenda-date"><span>{selectedDate.toLocaleDateString('en',{weekday:'long'})}</span><strong>{selectedDate.getDate()}</strong><small>{selectedDate.toLocaleDateString('en',{month:'long',year:'numeric'})}</small></div>
         <div className="agenda-heading"><h3>當天的安排</h3><button className="icon-button" aria-label="新增當日行程" onClick={()=>openNew(selectedDate)}><Plus size={18}/></button></div>
         {(selectedEvents.length||selectedHolidays.length) ? <div className="agenda-list">{selectedHolidays.map(item=><article className="agenda-event holiday-event" key={item.id}>
-          <i className="agenda-line holiday"/><span><strong>{item.title}</strong><small>{item.description}</small><em><Heart size={12}/> 特別節日</em></span><Heart size={15}/>
+          <i className={`agenda-line holiday ${item.isDayOff?'day-off':''}`}/><span><strong>{item.title}</strong><small>{item.description}</small><em className={item.isDayOff?'day-off-badge':''}>{item.isDayOff?<><Check size={12}/> 今日免上班</>:<><Heart size={12}/> 特別節日</>}</em>{item.isDayOff&&<small className="holiday-work-note">民間企業仍以公司排班及勞動部規定為準。</small>}</span>{item.isDayOff?<Check size={15}/>:<Heart size={15}/>}
         </article>)}{selectedEvents.map(item=><button className="agenda-event" key={item.id} onClick={()=>openEdit(item)}>
           <i className={`agenda-line ${item.category}`}/><span><strong>{item.title}</strong><span className="event-tags"><b className={`category-badge category-${item.category}`}>{categoryLabels[item.category]||'其他'}</b><b className="scope-badge">{scopeName(item)}</b></span><small><Clock3 size={13}/>{new Date(item.starts_at).toLocaleTimeString('zh-TW',{hour:'numeric',minute:'2-digit'})}{item.location&&<><MapPin size={13}/>{item.location}</>}</small><small className="event-creator"><UserRound size={12}/>由 {creatorName(item)} 建立</small><em>{item.visibility==='shared'?<Eye size={12}/>:item.visibility==='surprise'?<Sparkles size={12}/>:<EyeOff size={12}/>} {visibilityLabels[item.visibility]||item.visibility}</em></span><Pencil size={15}/>
         </button>)}</div>:<div className="agenda-empty"><span><CalendarDays size={25}/></span><strong>今天還沒有安排</strong><p>新增一個計畫，或留白給意想不到的美好。</p><button onClick={()=>openNew(selectedDate)}><Plus size={16}/>新增計畫</button></div>}
