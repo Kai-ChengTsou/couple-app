@@ -26,6 +26,7 @@ export default function WishlistPage({items,members,couple,user,onRefresh,onNoti
   const [deleteTarget,setDeleteTarget]=useState(null);
   const [aiSearch,setAiSearch]=useState({query:'',ids:null}),[aiSearching,setAiSearching]=useState(false);
   const [viewMode,setViewMode]=useState('list'),[selectedMapWish,setSelectedMapWish]=useState(null);
+  const [geocodedLocations,setGeocodedLocations]=useState({});
   const mapElementRef=useRef(null),mapInstanceRef=useRef(null),mapMarkersRef=useRef(null);
   const memberNames=useMemo(()=>Object.fromEntries((members||[]).map(member=>[member.user_id,member.profile?.display_name||'另一半'])),[members]);
   const availableRegions=useMemo(()=>[...new Set(items.map(item=>regionFromLocation(item.location)).filter(Boolean))],[items]);
@@ -38,6 +39,15 @@ export default function WishlistPage({items,members,couple,user,onRefresh,onNoti
   const activeFilterCount=[statusFilter,categoryFilter,regionFilter].filter(value=>value!=='all').length;
   const mappedWishes=useMemo(()=>shown.filter(item=>regionCoordinates[regionFromLocation(item.location)]),[shown]);
   useEffect(()=>{if(selectedMapWish&&!mappedWishes.some(item=>item.id===selectedMapWish.id))setSelectedMapWish(null);},[mappedWishes,selectedMapWish]);
+  useEffect(()=>{
+    if(viewMode!=='map'||!mappedWishes.length)return;
+    let cached={};try{cached=JSON.parse(localStorage.getItem('duet-wishlist-geocodes')||'{}');}catch{}const missing=mappedWishes.filter(item=>!cached[item.id]||cached[item.id].key!==`${item.title}|${item.location}`);
+    setGeocodedLocations(Object.fromEntries(Object.entries(cached).map(([id,value])=>[id,value.coordinates])));
+    if(!missing.length)return;
+    let cancelled=false;
+    (async()=>{try{const {data:{session}}=await supabase.auth.getSession();if(!session)return;const response=await fetch('/api/wishlist-geocode',{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${session.access_token}`},body:JSON.stringify({items:missing.map(item=>({id:item.id,title:item.title,location:item.location}))})});if(!response.ok)return;const result=await response.json();for(const place of result.locations||[])cached[place.id]={key:`${missing.find(item=>item.id===place.id)?.title}|${missing.find(item=>item.id===place.id)?.location}`,coordinates:[place.latitude,place.longitude]};localStorage.setItem('duet-wishlist-geocodes',JSON.stringify(cached));if(!cancelled)setGeocodedLocations(Object.fromEntries(Object.entries(cached).map(([id,value])=>[id,value.coordinates])));}catch{}})();
+    return()=>{cancelled=true;};
+  },[viewMode,mappedWishes]);
   useEffect(()=>{
     if(viewMode!=='map'||!mapElementRef.current)return;
     if(!mapInstanceRef.current){
@@ -53,8 +63,8 @@ export default function WishlistPage({items,members,couple,user,onRefresh,onNoti
     const map=mapInstanceRef.current,layer=mapMarkersRef.current;layer.clearLayers();
     const regionCounts={},regionTotals=mappedWishes.reduce((totals,item)=>{const region=regionFromLocation(item.location);totals[region]=(totals[region]||0)+1;return totals;},{});
     mappedWishes.forEach(item=>{
-      const region=regionFromLocation(item.location),base=regionCoordinates[region],sequence=regionCounts[region]||0;regionCounts[region]=sequence+1;
-      const total=regionTotals[region],angle=((sequence/Math.min(total,7))*Math.PI*2)-Math.PI/2,ring=Math.floor(sequence/7),radius=total>1?.14+(ring*.08):0;
+      const region=regionFromLocation(item.location),base=geocodedLocations[item.id]||regionCoordinates[region],sequence=regionCounts[region]||0;regionCounts[region]=sequence+1;
+      const total=geocodedLocations[item.id]?1:regionTotals[region],angle=((sequence/Math.min(total,7))*Math.PI*2)-Math.PI/2,ring=Math.floor(sequence/7),radius=total>1?.14+(ring*.08):0;
       const coordinates=[base[0]+Math.sin(angle)*radius,base[1]+Math.cos(angle)*radius];
       const meta=categoryMeta[item.category]||categoryMeta.place,Icon=meta.Icon;
       const iconMarkup=renderToStaticMarkup(<Icon size={14} strokeWidth={2.2}/>);
@@ -63,7 +73,7 @@ export default function WishlistPage({items,members,couple,user,onRefresh,onNoti
     });
     window.setTimeout(()=>map.invalidateSize(),0);
     return()=>{};
-  },[viewMode,mappedWishes]);
+  },[viewMode,mappedWishes,geocodedLocations]);
   useEffect(()=>()=>{mapInstanceRef.current?.remove();mapInstanceRef.current=null;mapMarkersRef.current=null;},[]);
   useEffect(()=>{
     if(viewMode!=='map')return;
