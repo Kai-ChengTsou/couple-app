@@ -204,7 +204,7 @@ export default function WishlistPage({items,members,couple,user,onRefresh,onNoti
   const actionMeta=editing?(categoryMeta[editing.category]||categoryMeta.gift):categoryMeta.gift;
   const ActionDetailIcon=actionMeta.Icon;
   const actionCreator=editing?(memberNames[editing.created_by]||'我們'):'我們';
-  let selectedMapPreview=<p className="wishlist-map-hint"><MapPin size={15}/>點一下地圖上的標記查看願望</p>;
+  let selectedMapPreview=null;
   if(selectedMapWish){
     const item=selectedMapWish,meta=categoryMeta[item.category]||categoryMeta.place,PreviewIcon=meta.Icon;
     selectedMapPreview=(
