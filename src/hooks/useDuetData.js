@@ -46,17 +46,40 @@ function warmPhotoCache(urls) {
   });
 }
 
+const wait = ms => new Promise(resolve => window.setTimeout(resolve, ms));
+
+async function loadLatestMembership(userId) {
+  let result;
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    result = await supabase
+      .from('couple_members')
+      .select('couple_id, joined_at, couples(*)')
+      .eq('user_id', userId)
+      .order('joined_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (!result.error) return result;
+    if (attempt < 2) await wait(350 * (attempt + 1));
+  }
+  return result;
+}
+
 export function useDuetData(user) {
-  const [state, setState] = useState({ loading: true, profile: null, couple: null, members: [], events: [], wishes: [], tasks: [], memories: [], countdowns: [] });
+  const [state, setState] = useState({ loading: true, loadError: '', membershipResolved: false, profile: null, couple: null, members: [], events: [], wishes: [], tasks: [], memories: [], countdowns: [] });
 
   const refresh = useCallback(async () => {
     if (!user || !supabase) return;
+    setState(current => ({ ...current, loading: !current.couple, loadError: '' }));
     const [profileResult, memberResult] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', user.id).single(),
-      supabase.from('couple_members').select('couple_id, couples(*)').eq('user_id', user.id).maybeSingle(),
+      loadLatestMembership(user.id),
     ]);
+    if (memberResult.error) {
+      console.error('Unable to load couple membership', memberResult.error);
+      return setState(current => ({ ...current, loading: false, loadError: '目前無法確認你的共同空間，請檢查網路後重試。', membershipResolved: false }));
+    }
     const couple = memberResult.data?.couples ?? null;
-    if (!couple) return setState({ loading: false, profile: profileResult.data, couple: null, members: [], events: [], wishes: [], tasks: [], memories: [], countdowns: [] });
+    if (!couple) return setState({ loading: false, loadError: '', membershipResolved: true, profile: profileResult.data, couple: null, members: [], events: [], wishes: [], tasks: [], memories: [], countdowns: [] });
     const [eventResult, wishResult, taskResult, memoryResult, membersResult, countdownResult] = await Promise.all([
       supabase.from('events').select('*').eq('couple_id', couple.id).order('starts_at').limit(200),
       supabase.from('wishlist_items').select('*').eq('couple_id', couple.id).order('created_at', { ascending: false }).limit(200),
@@ -81,10 +104,16 @@ export function useDuetData(user) {
     const signedByPath = await resolveSignedUrls('memory-photos', photoPaths);
     const memories = rawMemories.map(memory => ({ ...memory, image_url: memory.image_path ? signedByPath[memory.image_path] ?? null : memory.image_url }));
     warmPhotoCache([...wishes.map(wish => wish.image_url), ...memories.map(memory => memory.image_url)]);
-    setState({ loading: false, profile: profileResult.data, couple, members, events: eventResult.data ?? [], wishes, tasks: taskResult.data ?? [], memories, countdowns: countdownResult.data ?? [] });
+    setState({ loading: false, loadError: '', membershipResolved: true, profile: profileResult.data, couple, members, events: eventResult.data ?? [], wishes, tasks: taskResult.data ?? [], memories, countdowns: countdownResult.data ?? [] });
   }, [user]);
 
   useEffect(() => { refresh(); }, [refresh]);
+  useEffect(() => {
+    const refreshWhenActive = () => { if (document.visibilityState === 'visible') refresh(); };
+    window.addEventListener('online', refresh);
+    document.addEventListener('visibilitychange', refreshWhenActive);
+    return () => { window.removeEventListener('online', refresh); document.removeEventListener('visibilitychange', refreshWhenActive); };
+  }, [refresh]);
   useEffect(() => {
     if (!state.couple || !supabase) return;
     const channel = supabase.channel(`duet-${state.couple.id}`)

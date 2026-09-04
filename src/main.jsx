@@ -231,6 +231,8 @@ function App({ user = null, duet = null }) {
 function ConnectedApp({ user }) {
   const duet = useDuetData(user);
   if (duet.loading) return <div className="loading-screen"><Heart fill="currentColor"/><p>正在打開你們的小天地…</p></div>;
+  if (duet.loadError && !duet.couple) return <div className="loading-screen loading-error"><Heart fill="currentColor"/><p>{duet.loadError}</p><button type="button" onClick={duet.refresh}><RefreshCw size={17}/>重新載入</button></div>;
+  if (!duet.membershipResolved) return <div className="loading-screen"><Heart fill="currentColor"/><p>正在確認你們的共同空間…</p></div>;
   if (!duet.couple) return <CoupleSetup onReady={duet.refresh}/>;
   return <App user={user} duet={duet}/>;
 }
