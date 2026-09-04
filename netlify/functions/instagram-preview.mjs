@@ -38,11 +38,13 @@ function structuredProduct(html=''){
   }
   const queue=[...documents];let product=null;
   while(queue.length){const value=queue.shift();if(Array.isArray(value)){queue.push(...value);continue;}if(!value||typeof value!=='object')continue;const types=Array.isArray(value['@type'])?value['@type']:[value['@type']];if(types.some(type=>String(type).toLowerCase()==='product')){product=value;break;}if(Array.isArray(value['@graph']))queue.push(...value['@graph']);}
-  if(!product)return {name:'',description:'',price:null};
+  if(!product)return {name:'',description:'',price:null,image:''};
   const offers=Array.isArray(product.offers)?product.offers[0]:product.offers||{};
   const rawPrice=offers.price??offers.lowPrice??offers.priceSpecification?.price;
   const price=Number(String(rawPrice??'').replace(/[^0-9.]/g,''));
-  return {name:String(product.name||'').trim().slice(0,180),description:String(product.description||'').trim().slice(0,1500),price:Number.isFinite(price)&&price>0&&price<=10000000?price:null};
+  const productImage=Array.isArray(product.image)?product.image[0]:product.image;
+  const image=typeof productImage==='string'?productImage:(productImage?.contentUrl||productImage?.url||'');
+  return {name:String(product.name||'').trim().slice(0,180),description:String(product.description||'').trim().slice(0,1500),price:Number.isFinite(price)&&price>0&&price<=10000000?price:null,image:String(image||'').trim()};
 }
 
 function productMetaPrice(html=''){
@@ -139,12 +141,28 @@ function suggestedTitle(caption,storeName,location,title){
   return fallback.length>72?`${fallback.slice(0,69)}…`:fallback;
 }
 
-async function imageDataUrl(url){
+function pageImageCandidates(html='',product={},pageUrl){
+  const candidates=[product.image,meta(html,'product:image'),meta(html,'product:image:secure_url'),meta(html,'og:image:secure_url'),meta(html,'og:image'),meta(html,'twitter:image')];
+  for(const match of html.matchAll(/<img[^>]+(?:data-src|data-large_image|src)=["']([^"']+)["'][^>]*>/gi)){
+    const tag=match[0],url=match[1];
+    if(/product|woocommerce|gallery|attachment/i.test(tag)&&!/logo|icon|avatar|placeholder/i.test(`${tag} ${url}`))candidates.push(url);
+  }
+  const normalized=[];
+  for(const candidate of candidates){
+    if(!candidate)continue;
+    try{const url=new URL(candidate,pageUrl);if(['http:','https:'].includes(url.protocol)&&!normalized.includes(url.href))normalized.push(url.href);}catch{}
+  }
+  return normalized.slice(0,10);
+}
+
+async function imageDataUrl(url,referer=''){
   if(!url)return '';
   let parsed;
   try{parsed=new URL(url);}catch{return '';}
   if(parsed.protocol!=='https:'||['localhost','127.0.0.1','::1'].includes(parsed.hostname))return '';
-  const response=await fetch(parsed,{headers:{'User-Agent':'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15','Referer':'https://www.instagram.com/'},signal:AbortSignal.timeout(9000)});
+  const headers={'User-Agent':'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15','Accept':'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8'};
+  if(referer)headers.Referer=referer;
+  const response=await fetch(parsed,{headers,signal:AbortSignal.timeout(9000)});
   if(!response.ok)return '';
   const type=response.headers.get('content-type')||'';
   if(!type.startsWith('image/'))return '';
@@ -221,9 +239,11 @@ export default async req=>{
     const ruleLocation=locationFrom(caption);
     const ruleStoreName=storeNameFrom(caption);
     const rulePrice=product.price||productMetaPrice(html)||priceFrom(`${caption}\n${pageText}`);
-    const imageUrl=meta(html,'og:image')||meta(html,'twitter:image');
     let image='';
-    try{image=await imageDataUrl(imageUrl);}catch{}
+    for(const imageUrl of pageImageCandidates(html,product,finalUrl)){
+      try{image=await imageDataUrl(imageUrl,finalUrl.href);}catch{}
+      if(image)break;
+    }
     let aiResult=null;
     const sourceLabel=isInstagram(sourceUrl)?'Instagram':/(^|\.)threads\.net$/i.test(sourceUrl.hostname)?'Threads':/(xiaohongshu|xhslink|rednote)/i.test(sourceUrl.hostname)?'小紅書／RedNote':'一般網站';
     try{aiResult=await recognizeWithAi({caption,rawTitle,image,pageText,sourceLabel});}catch(aiError){console.warn('AI recognition unavailable; using rules',aiError.message);}
@@ -231,7 +251,7 @@ export default async req=>{
     const storeName=useAi&&aiResult.storeName?aiResult.storeName:(ruleStoreName||product.name);
     const location=useAi&&aiResult.location?aiResult.location:ruleLocation;
     return json({
-      title:suggestedTitle(caption,storeName,location,rawTitle),
+      title:product.name||suggestedTitle(caption,storeName,location,rawTitle),
       description:useAi&&aiResult.summary?aiResult.summary:caption.slice(0,1200),
       storeName,
       location,
