@@ -22,7 +22,7 @@ export default function WishlistPage({items,members,couple,user,onRefresh,onNoti
   const [statusFilter,setStatusFilter]=useState('all'),[kindFilter,setKindFilter]=useState('all'),[categoryFilter,setCategoryFilter]=useState('all'),[regionFilter,setRegionFilter]=useState('all'),[filterOpen,setFilterOpen]=useState(false),[query,setQuery]=useState(''),[editing,setEditing]=useState(null),[form,setForm]=useState(blank),[formOpen,setFormOpen]=useState(false),[actionOpen,setActionOpen]=useState(false),[saving,setSaving]=useState(false),[error,setError]=useState('');
   const [photoFile,setPhotoFile]=useState(null),[photoPreview,setPhotoPreview]=useState(''),[removePhoto,setRemovePhoto]=useState(false),[planning,setPlanning]=useState(false),[schedule,setSchedule]=useState({date:'',time:'19:00'});
   const [createMode,setCreateMode]=useState('choose'),[importUrl,setImportUrl]=useState(''),[importBusy,setImportBusy]=useState(false),[importError,setImportError]=useState(''),[importPreview,setImportPreview]=useState(null);
-  const [detailDrag,setDetailDrag]=useState(0),detailDragStart=useRef(null);
+  const [detailDrag,setDetailDrag]=useState(0),[detailOrigin,setDetailOrigin]=useState('list'),detailDragStart=useRef(null);
   const [swipedWishId,setSwipedWishId]=useState(null),cardSwipeStart=useRef(null),cardSwipeJustEnded=useRef(false);
   const [deleteTarget,setDeleteTarget]=useState(null);
   const [aiSearch,setAiSearch]=useState({query:'',ids:null}),[aiSearching,setAiSearching]=useState(false);
@@ -119,11 +119,11 @@ export default function WishlistPage({items,members,couple,user,onRefresh,onNoti
 
   function openEditor(item=null){setEditing(item);setCreateMode(item?'manual':'choose');setError('');setImportError('');setImportPreview(null);setPhotoFile(null);setRemovePhoto(false);setForm(item?{title:item.title,category:item.category,location:item.location||'',url:item.url||'',estimated_price:item.estimated_price||'',status:item.status,notes:item.notes||'',image_path:item.image_path||'',image_url:item.image_url||''}:{...blank});setFormOpen(true);}
   function closeEditor(){if(importBusy)return;setFormOpen(false);setEditing(null);setCreateMode('choose');setForm({...blank});setError('');setImportError('');setImportPreview(null);setPhotoFile(null);setRemovePhoto(false);}
-  function openActions(item){setEditing(item);setError('');setPlanning(false);setDetailDrag(0);setSchedule({date:'',time:'19:00'});setActionOpen(true);}
+  function openActions(item,origin='list'){setEditing(item);setDetailOrigin(origin);setError('');setPlanning(false);setDetailDrag(0);setSchedule({date:'',time:'19:00'});setActionOpen(true);}
   function startCardSwipe(event,itemId){const touch=event.touches?.[0];if(touch)cardSwipeStart.current={itemId,x:touch.clientX,y:touch.clientY,base:swipedWishId===itemId?-88:0,element:event.currentTarget};}
   function endCardSwipe(event,itemId){const start=cardSwipeStart.current,touch=event.changedTouches?.[0];cardSwipeStart.current=null;if(!start||!touch||start.itemId!==itemId)return;start.element.style.transform='';const dx=touch.clientX-start.x,dy=touch.clientY-start.y;if(Math.abs(dx)<32||Math.abs(dx)<=Math.abs(dy)*1.15)return;if(dx<0)setSwipedWishId(itemId);else if(swipedWishId===itemId)setSwipedWishId(null);cardSwipeJustEnded.current=true;window.setTimeout(()=>{cardSwipeJustEnded.current=false;},0);}
   function openWishCard(item){if(cardSwipeJustEnded.current)return;if(swipedWishId){setSwipedWishId(null);return;}openActions(item);}
-  function closeActions(){setActionOpen(false);setEditing(null);setError('');setPlanning(false);setDetailDrag(0);detailDragStart.current=null;}
+  function closeActions(){const restoreMap=detailOrigin==='map';setActionOpen(false);setEditing(null);setDetailOrigin('list');setError('');setPlanning(false);setDetailDrag(0);detailDragStart.current=null;if(restoreMap)setViewMode('map');}
   function startDetailDrag(event){detailDragStart.current={start:event.clientY,last:event.clientY};event.currentTarget.setPointerCapture?.(event.pointerId);}
   function moveDetailDrag(event){if(!detailDragStart.current)return;detailDragStart.current.last=event.clientY;setDetailDrag(Math.max(0,event.clientY-detailDragStart.current.start));}
   function endDetailDrag(event){if(!detailDragStart.current)return;const endY=event?.clientY||detailDragStart.current.last;const distance=endY-detailDragStart.current.start;detailDragStart.current=null;if(distance>70)closeActions();else setDetailDrag(0);}
@@ -214,7 +214,7 @@ export default function WishlistPage({items,members,couple,user,onRefresh,onNoti
         <div>
           <div className="wishlist-map-preview-tags"><span className={`wish-category ${meta.tone}`}>{meta.label}</span><span className="wish-map-status"><Sparkles size={11}/>{statusLabels[item.status]||item.status}</span></div>
           <h3>{item.title}</h3><p><MapPin size={13}/>{item.location}</p>
-          <div><button type="button" onClick={()=>{setViewMode('list');openActions(item)}}>查看詳情</button><button type="button" onClick={()=>openMapSearch(item)}><ExternalLink size={14}/>Google 地圖</button></div>
+          <div><button type="button" onClick={()=>{setViewMode('list');openActions(item,'map')}}>查看詳情</button><button type="button" onClick={()=>openMapSearch(item)}><ExternalLink size={14}/>Google 地圖</button></div>
         </div>
         <button type="button" className="wishlist-map-preview-close" onClick={()=>setSelectedMapWish(null)} aria-label="關閉地點預覽"><X size={17}/></button>
       </article>
