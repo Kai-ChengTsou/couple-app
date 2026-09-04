@@ -23,6 +23,34 @@ function meta(html,key){
   return '';
 }
 
+function visiblePageText(html=''){
+  return decodeHtml(html
+    .replace(/<(script|style|svg|noscript|template)[^>]*>[\s\S]*?<\/\1>/gi,' ')
+    .replace(/<br\s*\/?>|<\/p>|<\/li>|<\/h[1-6]>|<\/div>/gi,'\n')
+    .replace(/<[^>]+>/g,' '))
+    .split('\n').map(line=>line.replace(/\s+/g,' ').trim()).filter((line,index,lines)=>line.length>1&&lines.indexOf(line)===index).join('\n').slice(0,8000);
+}
+
+function structuredProduct(html=''){
+  const documents=[];
+  for(const match of html.matchAll(/<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)){
+    try{documents.push(JSON.parse(match[1].trim()));}catch{try{documents.push(JSON.parse(decodeHtml(match[1]).trim()));}catch{}}
+  }
+  const queue=[...documents];let product=null;
+  while(queue.length){const value=queue.shift();if(Array.isArray(value)){queue.push(...value);continue;}if(!value||typeof value!=='object')continue;const types=Array.isArray(value['@type'])?value['@type']:[value['@type']];if(types.some(type=>String(type).toLowerCase()==='product')){product=value;break;}if(Array.isArray(value['@graph']))queue.push(...value['@graph']);}
+  if(!product)return {name:'',description:'',price:null};
+  const offers=Array.isArray(product.offers)?product.offers[0]:product.offers||{};
+  const rawPrice=offers.price??offers.lowPrice??offers.priceSpecification?.price;
+  const price=Number(String(rawPrice??'').replace(/[^0-9.]/g,''));
+  return {name:String(product.name||'').trim().slice(0,180),description:String(product.description||'').trim().slice(0,1500),price:Number.isFinite(price)&&price>0&&price<=10000000?price:null};
+}
+
+function productMetaPrice(html=''){
+  const raw=meta(html,'product:price:amount')||meta(html,'og:price:amount')||meta(html,'twitter:data1');
+  const price=Number(String(raw).replace(/[^0-9.]/g,''));
+  return Number.isFinite(price)&&price>0&&price<=10000000?price:null;
+}
+
 function validPublicUrl(value){
   let parsed;
   try{parsed=new URL(value);}catch{return null;}
@@ -100,6 +128,7 @@ function categoryFrom(text){
   if(/餐廳|咖啡|甜點|美食|早餐|午餐|晚餐|料理|restaurant|cafe|coffee|food|brunch|dessert/i.test(text))return 'food';
   if(/旅遊|旅行|飯店|住宿|景點|trip|travel|hotel|resort/i.test(text))return 'trip';
   if(/電影|影城|movie|cinema/i.test(text))return 'movie';
+  if(/商品|購物|服飾|衣服|針織|毛衣|鞋|包|禮物|product|shop|clothing|shirt|sweater|shoes|bag/i.test(text))return 'gift';
   return 'place';
 }
 
@@ -131,12 +160,12 @@ function parseAiJson(text=''){
   try{return JSON.parse(candidate.slice(start,end+1));}catch{return null;}
 }
 
-async function recognizeWithAi({caption,rawTitle,image,sourceLabel='網頁'}){
+async function recognizeWithAi({caption,rawTitle,image,pageText='',sourceLabel='網頁'}){
   const baseUrl=Netlify.env.get('ANTHROPIC_BASE_URL')?.replace(/\/$/,'');
   const authToken=Netlify.env.get('ANTHROPIC_AUTH_TOKEN');
   const model=Netlify.env.get('ANTHROPIC_MODEL')||'claude-sonnet-4-6';
   if(!baseUrl||!authToken)return null;
-  const content=[{type:'text',text:`你正在分析一個來自${sourceLabel}的收藏連結。請從頁面標題、摘要與預覽圖片找出真正的店名、活動／商品名稱、地點或地址；不要把宣傳句、帳號名稱或 Hashtag 當成名稱。另寫一段適合放在情侶願望清單「備註」欄的繁體中文摘要，最多兩句、120 個中文字，保留特色、推薦內容或體驗重點。只有來源明確寫出價格、售價、套餐價或每人費用時，才回傳純數字 estimatedPrice；不可猜測。不可杜撰來源沒有的資訊。只輸出 JSON，不要 Markdown：{"storeName":"","location":"","category":"food|place|trip|movie","summary":"","estimatedPrice":null,"confidence":0.0}。無法確認的文字欄位用空字串，價格用 null。\n\n頁面標題：${rawTitle.slice(0,500)}\n頁面內容：${caption.slice(0,4000)}`}];
+  const content=[{type:'text',text:`你正在分析一個來自${sourceLabel}的收藏連結。請從頁面標題、摘要、可見內容與預覽圖片找出真正的店名、活動／商品名稱、地點或地址；不要把宣傳句、帳號名稱或 Hashtag 當成名稱。另寫一段適合放在情侶願望清單「備註」欄的繁體中文摘要，最多兩句、120 個中文字，保留特色、推薦內容或體驗重點。只有來源明確寫出價格、售價、套餐價或每人費用時，才回傳純數字 estimatedPrice；不可猜測。不可杜撰來源沒有的資訊。只輸出 JSON，不要 Markdown：{"storeName":"","location":"","category":"food|place|trip|movie|gift|shared purchase|date idea","summary":"","estimatedPrice":null,"confidence":0.0}。無法確認的文字欄位用空字串，價格用 null。\n\n頁面標題：${rawTitle.slice(0,500)}\n頁面摘要：${caption.slice(0,2500)}\n頁面可見內容：${pageText.slice(0,6000)}`}];
   const imageMatch=image.match(/^data:(image\/(?:jpeg|png|gif|webp));base64,(.+)$/s);
   if(imageMatch)content.push({type:'image',source:{type:'base64',media_type:imageMatch[1],data:imageMatch[2]}});
   const endpoint=baseUrl.endsWith('/v1')?`${baseUrl}/messages`:`${baseUrl}/v1/messages`;
@@ -145,7 +174,7 @@ async function recognizeWithAi({caption,rawTitle,image,sourceLabel='網頁'}){
   const result=await response.json();
   const parsed=parseAiJson(result.content?.find(block=>block.type==='text')?.text);
   if(!parsed)return null;
-  const allowedCategories=new Set(['food','place','trip','movie']);
+  const allowedCategories=new Set(['food','place','trip','movie','gift','shared purchase','date idea']);
   const estimatedPrice=Number(parsed.estimatedPrice);
   return {storeName:String(parsed.storeName||'').trim().slice(0,120),location:String(parsed.location||'').trim().slice(0,180),category:allowedCategories.has(parsed.category)?parsed.category:'place',summary:String(parsed.summary||'').trim().slice(0,300),estimatedPrice:Number.isFinite(estimatedPrice)&&estimatedPrice>0&&estimatedPrice<=10000000?estimatedPrice:null,confidence:Math.max(0,Math.min(1,Number(parsed.confidence)||0))};
 }
@@ -184,18 +213,22 @@ export default async req=>{
     }
     if(!rawTitle&&!description)return json({error:'這個網站沒有提供可讀取的標題或摘要，請改用手動新增。'},422);
     if(isInstagram(sourceUrl)&&genericInstagramPage(rawTitle,description))return json({error:'Instagram 只回傳登入頁，無法讀取這則貼文。請確認是公開貼文，或改用手動新增。'},422);
+    const product=structuredProduct(html);
+    const pageText=visiblePageText(html);
+    if(product.name&&!rawTitle)rawTitle=product.name;
+    if(product.description&&!description)description=product.description;
     const caption=cleanCaption(rawTitle,description);
     const ruleLocation=locationFrom(caption);
     const ruleStoreName=storeNameFrom(caption);
-    const rulePrice=priceFrom(caption);
+    const rulePrice=product.price||productMetaPrice(html)||priceFrom(`${caption}\n${pageText}`);
     const imageUrl=meta(html,'og:image')||meta(html,'twitter:image');
     let image='';
     try{image=await imageDataUrl(imageUrl);}catch{}
     let aiResult=null;
     const sourceLabel=isInstagram(sourceUrl)?'Instagram':/(^|\.)threads\.net$/i.test(sourceUrl.hostname)?'Threads':/(xiaohongshu|xhslink|rednote)/i.test(sourceUrl.hostname)?'小紅書／RedNote':'一般網站';
-    try{aiResult=await recognizeWithAi({caption,rawTitle,image,sourceLabel});}catch(aiError){console.warn('AI recognition unavailable; using rules',aiError.message);}
+    try{aiResult=await recognizeWithAi({caption,rawTitle,image,pageText,sourceLabel});}catch(aiError){console.warn('AI recognition unavailable; using rules',aiError.message);}
     const useAi=Boolean(aiResult&&aiResult.confidence>=0.55&&(aiResult.storeName||aiResult.location));
-    const storeName=useAi&&aiResult.storeName?aiResult.storeName:ruleStoreName;
+    const storeName=useAi&&aiResult.storeName?aiResult.storeName:(ruleStoreName||product.name);
     const location=useAi&&aiResult.location?aiResult.location:ruleLocation;
     return json({
       title:suggestedTitle(caption,storeName,location,rawTitle),
