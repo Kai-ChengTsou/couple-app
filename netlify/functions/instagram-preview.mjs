@@ -23,14 +23,16 @@ function meta(html,key){
   return '';
 }
 
-function validInstagramUrl(value){
+function validPublicUrl(value){
   let parsed;
   try{parsed=new URL(value);}catch{return null;}
   const host=parsed.hostname.toLowerCase();
-  if(parsed.protocol!=='https:'||!(host==='instagram.com'||host.endsWith('.instagram.com')))return null;
+  if(!['http:','https:'].includes(parsed.protocol)||!host||host==='localhost'||host.endsWith('.local')||host==='0.0.0.0'||host==='127.0.0.1'||host==='::1'||/^10\.|^192\.168\.|^169\.254\.|^172\.(1[6-9]|2\d|3[01])\./.test(host))return null;
   parsed.hash='';
   return parsed;
 }
+
+const isInstagram=parsed=>/(^|\.)instagram\.com$/i.test(parsed.hostname);
 
 function instagramEmbedUrl(parsed){
   const match=parsed.pathname.match(/^\/(?:p|reel|tv)\/([^/]+)/i);
@@ -45,6 +47,15 @@ async function fetchInstagramHtml(url){
   const response=await fetch(url,{headers:{'User-Agent':'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Version/18.0 Mobile/15E148 Safari/604.1','Accept-Language':'zh-TW,zh;q=0.9,en;q=0.7'},redirect:'follow',signal:AbortSignal.timeout(12000)});
   if(!response.ok)throw new Error(`Instagram returned ${response.status}`);
   return {response,html:(await response.text()).slice(0,1500000)};
+}
+
+async function fetchPageHtml(url){
+  const response=await fetch(url,{headers:{'User-Agent':'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Version/18.0 Mobile/15E148 Safari/604.1','Accept':'text/html,application/xhtml+xml','Accept-Language':'zh-TW,zh;q=0.9,en;q=0.7'},redirect:'follow',signal:AbortSignal.timeout(12000)});
+  const finalUrl=validPublicUrl(response.url);
+  if(!response.ok||!finalUrl)throw new Error(`Website returned ${response.status}`);
+  const type=response.headers.get('content-type')||'';
+  if(!type.includes('text/html')&&!type.includes('application/xhtml+xml'))throw new Error('Unsupported page');
+  return {response,html:(await response.text()).slice(0,1500000),finalUrl};
 }
 
 function cleanCaption(title,description){
@@ -120,12 +131,12 @@ function parseAiJson(text=''){
   try{return JSON.parse(candidate.slice(start,end+1));}catch{return null;}
 }
 
-async function recognizeWithAi({caption,rawTitle,image}){
+async function recognizeWithAi({caption,rawTitle,image,sourceLabel='網頁'}){
   const baseUrl=Netlify.env.get('ANTHROPIC_BASE_URL')?.replace(/\/$/,'');
   const authToken=Netlify.env.get('ANTHROPIC_AUTH_TOKEN');
   const model=Netlify.env.get('ANTHROPIC_MODEL')||'claude-sonnet-4-6';
   if(!baseUrl||!authToken)return null;
-  const content=[{type:'text',text:`你正在分析一則 Instagram 餐廳／景點收藏。請從貼文 caption 與封面找出真正的店名、地點或地址；不要把宣傳句、帳號名稱或 Hashtag 當成店名。另寫一段適合放在情侶願望清單「備註」欄的繁體中文摘要，最多兩句、120 個中文字，保留店家特色、推薦餐點或體驗重點；移除按讚／留言數、帳號、Hashtag、私訊要求與重複文字。只有 caption 明確寫出價格、售價、套餐價或每人費用時，才回傳純數字 estimatedPrice；不可猜測或從一般數字推斷價格。不可杜撰貼文沒有的資訊。只輸出 JSON，不要 Markdown：{"storeName":"","location":"","category":"food|place|trip|movie","summary":"","estimatedPrice":null,"confidence":0.0}。無法確認的文字欄位用空字串，價格用 null。\n\nOG 標題：${rawTitle.slice(0,500)}\n貼文內容：${caption.slice(0,4000)}`}];
+  const content=[{type:'text',text:`你正在分析一個來自${sourceLabel}的收藏連結。請從頁面標題、摘要與預覽圖片找出真正的店名、活動／商品名稱、地點或地址；不要把宣傳句、帳號名稱或 Hashtag 當成名稱。另寫一段適合放在情侶願望清單「備註」欄的繁體中文摘要，最多兩句、120 個中文字，保留特色、推薦內容或體驗重點。只有來源明確寫出價格、售價、套餐價或每人費用時，才回傳純數字 estimatedPrice；不可猜測。不可杜撰來源沒有的資訊。只輸出 JSON，不要 Markdown：{"storeName":"","location":"","category":"food|place|trip|movie","summary":"","estimatedPrice":null,"confidence":0.0}。無法確認的文字欄位用空字串，價格用 null。\n\n頁面標題：${rawTitle.slice(0,500)}\n頁面內容：${caption.slice(0,4000)}`}];
   const imageMatch=image.match(/^data:(image\/(?:jpeg|png|gif|webp));base64,(.+)$/s);
   if(imageMatch)content.push({type:'image',source:{type:'base64',media_type:imageMatch[1],data:imageMatch[2]}});
   const endpoint=baseUrl.endsWith('/v1')?`${baseUrl}/messages`:`${baseUrl}/v1/messages`;
@@ -151,15 +162,17 @@ export default async req=>{
   if(userError||!user)return json({error:'登入狀態已失效，請重新開啟 Duet。'},401);
   let body;
   try{body=await req.json();}catch{return json({error:'資料格式不正確。'},400);}
-  const instagramUrl=validInstagramUrl(body?.url?.trim());
-  if(!instagramUrl)return json({error:'請貼上有效的 Instagram 貼文或 Reel 連結。'},400);
+  const sourceUrl=validPublicUrl(body?.url?.trim());
+  if(!sourceUrl)return json({error:'請貼上有效的公開網頁連結。'},400);
   try{
-    let {response,html}=await fetchInstagramHtml(instagramUrl);
-    if(!validInstagramUrl(response.url))throw new Error('Unexpected redirect');
+    let response,html,finalUrl=sourceUrl;
+    if(isInstagram(sourceUrl)){({response,html}=await fetchInstagramHtml(sourceUrl));finalUrl=validPublicUrl(response.url);}
+    else ({response,html,finalUrl}=await fetchPageHtml(sourceUrl));
+    if(!finalUrl)throw new Error('Unexpected redirect');
     let rawTitle=meta(html,'og:title')||meta(html,'twitter:title');
     let description=meta(html,'og:description')||meta(html,'description');
     if((!rawTitle&&!description)||genericInstagramPage(rawTitle,description)){
-      const embedUrl=instagramEmbedUrl(instagramUrl);
+      const embedUrl=isInstagram(sourceUrl)?instagramEmbedUrl(sourceUrl):null;
       if(embedUrl){
         try{
           const embed=await fetchInstagramHtml(embedUrl);
@@ -169,7 +182,8 @@ export default async req=>{
         }catch(embedError){console.warn('Instagram embed fallback unavailable',embedError.message);}
       }
     }
-    if((!rawTitle&&!description)||genericInstagramPage(rawTitle,description))return json({error:'Instagram 只回傳登入頁，無法讀取這則貼文。請確認是公開貼文，或改用「手動填寫」保留連結。'},422);
+    if(!rawTitle&&!description)return json({error:'這個網站沒有提供可讀取的標題或摘要，請改用手動新增。'},422);
+    if(isInstagram(sourceUrl)&&genericInstagramPage(rawTitle,description))return json({error:'Instagram 只回傳登入頁，無法讀取這則貼文。請確認是公開貼文，或改用手動新增。'},422);
     const caption=cleanCaption(rawTitle,description);
     const ruleLocation=locationFrom(caption);
     const ruleStoreName=storeNameFrom(caption);
@@ -178,7 +192,8 @@ export default async req=>{
     let image='';
     try{image=await imageDataUrl(imageUrl);}catch{}
     let aiResult=null;
-    try{aiResult=await recognizeWithAi({caption,rawTitle,image});}catch(aiError){console.warn('AI recognition unavailable; using rules',aiError.message);}
+    const sourceLabel=isInstagram(sourceUrl)?'Instagram':/(^|\.)threads\.net$/i.test(sourceUrl.hostname)?'Threads':/(xiaohongshu|xhslink|rednote)/i.test(sourceUrl.hostname)?'小紅書／RedNote':'一般網站';
+    try{aiResult=await recognizeWithAi({caption,rawTitle,image,sourceLabel});}catch(aiError){console.warn('AI recognition unavailable; using rules',aiError.message);}
     const useAi=Boolean(aiResult&&aiResult.confidence>=0.55&&(aiResult.storeName||aiResult.location));
     const storeName=useAi&&aiResult.storeName?aiResult.storeName:ruleStoreName;
     const location=useAi&&aiResult.location?aiResult.location:ruleLocation;
@@ -190,13 +205,13 @@ export default async req=>{
       estimatedPrice:useAi&&aiResult.estimatedPrice?aiResult.estimatedPrice:rulePrice,
       category:useAi?aiResult.category:categoryFrom(`${caption} ${rawTitle}`),
       recognition:useAi?'ai':'rules',
-      canonicalUrl:instagramUrl.href,
+      canonicalUrl:finalUrl.href,
       imageDataUrl:image
     });
   }catch(error){
-    console.error('Instagram preview failed',error.message);
-    return json({error:'目前無法讀取這則 Instagram 內容。可能是私人貼文或 Instagram 暫時限制讀取，你仍可以手動收藏連結。'},422);
+    console.error('Link preview failed',error.message);
+    return json({error:'目前無法讀取這個連結。它可能需要登入或阻擋外部讀取，你仍可以手動收藏連結。'},422);
   }
 };
 
-export const config={path:'/api/instagram-preview',method:['POST']};
+export const config={path:['/api/link-preview','/api/instagram-preview'],method:['POST']};
